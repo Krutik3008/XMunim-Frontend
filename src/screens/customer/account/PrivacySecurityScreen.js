@@ -7,7 +7,8 @@ import {
     ScrollView,
     Switch,
     Alert,
-    Platform
+    Platform,
+    Share
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +17,8 @@ import { colors, gradients, spacing, borderRadius, fontSize, shadows } from '../
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../../context/AuthContext';
 import { authAPI } from '../../../api';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 
 const PrivacySecurityScreen = () => {
     const navigation = useNavigation();
@@ -130,10 +133,40 @@ const PrivacySecurityScreen = () => {
                     text: 'Request Export',
                     onPress: async () => {
                         try {
-                            await authAPI.requestDataExport();
-                            handleFeatureAlert('Request Received', 'Your data export is being prepared and will be sent shortly.');
+                            // 1. Fetch data from backend
+                            const response = await authAPI.requestDataExport();
+                            const pdfBase64 = response.data?.pdf_base64;
+
+                            if (!pdfBase64) {
+                                throw new Error('No PDF data received from server');
+                            }
+
+                            // 2. Create a temporary file path
+                            const fileUri = `${FileSystem.documentDirectory}ShopMunim_DataExport_${new Date().toISOString().split('T')[0]}.pdf`;
+
+                            // 3. Write base64 data to the file
+                            await FileSystem.writeAsStringAsync(
+                                fileUri,
+                                pdfBase64,
+                                { encoding: 'base64' }
+                            );
+
+                            // 4. Check if sharing is available on the device
+                            const isAvailable = await Sharing.isAvailableAsync();
+                            if (isAvailable) {
+                                // 5. Open the native share sheet
+                                await Sharing.shareAsync(fileUri, {
+                                    mimeType: 'application/pdf',
+                                    dialogTitle: 'Share your PDF Report',
+                                    UTI: 'com.adobe.pdf'
+                                });
+                            } else {
+                                handleFeatureAlert('Notice', `Export saved to:\n${fileUri}`);
+                            }
+
                         } catch (error) {
-                            handleFeatureAlert('Error', 'Failed to request data export.');
+                            handleFeatureAlert('Error', `Failed to request and share data export: ${error.message}`);
+                            console.error('Export Error:', error);
                         }
                     }
                 }
