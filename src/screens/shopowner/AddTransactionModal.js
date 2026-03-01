@@ -274,7 +274,7 @@ const AddTransactionModal = ({ visible, onClose, shopId, onSuccess, preselectedC
             toast={toastVisible ? renderToast() : null}
             keyboardShouldPersistTaps="handled"
         >
-            <View style={styles.formContent}>
+            <ScrollView style={styles.formContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                 <View style={styles.inputContainer}>
                     <Text style={styles.sectionLabel}>
                         Select Customer <Text style={styles.required}>*</Text>
@@ -545,7 +545,7 @@ const AddTransactionModal = ({ visible, onClose, shopId, onSuccess, preselectedC
                         <Text style={styles.cancelBtnText}>Cancel</Text>
                     </TouchableOpacity>
                 </View>
-            </View>
+            </ScrollView>
         </Modal>
     );
 };
