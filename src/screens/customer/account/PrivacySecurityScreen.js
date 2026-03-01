@@ -102,13 +102,35 @@ const PrivacySecurityScreen = () => {
     const handleActiveSessions = async () => {
         try {
             const response = await authAPI.getSessions();
-            const session = response.data.sessions[0];
+            const sessions = response.data.sessions || [];
+
+            if (sessions.length === 0) {
+                Alert.alert('Active Sessions', 'No active sessions found.');
+                return;
+            }
+
+            const sessionInfo = sessions.map((s, idx) =>
+                `${idx + 1}. ${s.device} (${s.os})\n   Last Active: ${s.last_active}`
+            ).join('\n\n');
+
             Alert.alert(
                 'Active Sessions',
-                `Currently logged in as: ${user?.name || 'User'}\nDevice: ${session.device} (${session.os})\nRole: ${user?.active_role?.replace('_', ' ').toUpperCase()}\nLast Active: Just now`,
+                `Logged in as: ${user?.name || 'User'}\n\n${sessionInfo}`,
                 [
-                    { text: 'Close', style: 'default' },
-                    { text: 'Logout All', style: 'destructive', onPress: () => logout() }
+                    { text: 'Close', style: 'cancel' },
+                    {
+                        text: 'Logout All',
+                        style: 'destructive',
+                        onPress: async () => {
+                            try {
+                                await authAPI.logoutAllSessions();
+                                logout();
+                            } catch (e) {
+                                // Fallback to local logout if API fails
+                                logout();
+                            }
+                        }
+                    }
                 ]
             );
         } catch (error) {
