@@ -58,7 +58,7 @@ const PrivacySecurityScreen = () => {
                 icon: 'ribbon-outline'
             });
         } else {
-            score += 10;
+            score += 15;
             completed.push({
                 id: 'role',
                 title: 'Secure Access',
@@ -215,7 +215,9 @@ const PrivacySecurityScreen = () => {
                     <Text style={styles.statusHint}>
                         {securityScore === 100
                             ? 'Your account meets all security standards.'
-                            : 'Complete your profile and verification to reach 100% security.'}
+                            : recommendations.length > 0
+                                ? 'Follow the recommendations below to reach 100% security.'
+                                : 'Keep your account secure by following best practices.'}
                     </Text>
                 </LinearGradient>
 
