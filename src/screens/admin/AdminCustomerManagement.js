@@ -912,7 +912,7 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     paginationInfoText: {
-        fontSize: 13,
+        fontSize: 12,
         color: '#6B7280',
         flexShrink: 1,
     },
@@ -941,7 +941,7 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     pageSizeLabel: {
-        fontSize: 13,
+        fontSize: 12,
         color: '#6B7280',
         marginRight: 4,
     },
@@ -957,7 +957,7 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     pageSizeDropdownText: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: '600',
         color: '#374151',
     },

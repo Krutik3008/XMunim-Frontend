@@ -973,16 +973,16 @@ const CustomerDetailScreen = ({ route, navigation }) => {
                                                     {totalItems > 0 && (
                                                         <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 16, marginTop: 16, marginHorizontal: 2, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3, borderWidth: 1, borderColor: '#F3F4F6' }}>
                                                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                                                                <Text style={{ fontSize: 13, color: '#6B7280' }}>
+                                                                <Text style={{ fontSize: 12, color: '#6B7280' }}>
                                                                     Showing {startIdx + 1} to {endIdx} of <Text style={{ fontWeight: '700' }}>{totalItems} transactions</Text>
                                                                 </Text>
                                                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, position: 'relative', zIndex: 10 }}>
-                                                                    <Text style={{ fontSize: 13, color: '#6B7280' }}>Show:</Text>
+                                                                    <Text style={{ fontSize: 12, color: '#6B7280' }}>Show:</Text>
                                                                     <TouchableOpacity
                                                                         style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 6, gap: 4 }}
                                                                         onPress={() => setShowPerPageDropdown(!showPerPageDropdown)}
                                                                     >
-                                                                        <Text style={{ fontSize: 13, color: '#111827', fontWeight: '500' }}>{perPage}</Text>
+                                                                        <Text style={{ fontSize: 12, color: '#111827', fontWeight: '500' }}>{perPage}</Text>
                                                                         <Ionicons name={showPerPageDropdown ? 'chevron-up' : 'chevron-down'} size={14} color="#6B7280" />
                                                                     </TouchableOpacity>
                                                                     {showPerPageDropdown && (
@@ -3016,9 +3016,9 @@ const modalStyles = StyleSheet.create({
     // Pagination styles (matched with customer side)
     paginationCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginTop: 16, marginHorizontal: 2, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3, borderWidth: 1, borderColor: '#F3F4F6' },
     paginationTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-    paginationInfo: { fontSize: 13, color: '#6B7280' },
+    paginationInfo: { fontSize: 12, color: '#6B7280' },
     paginationShowRow: { flexDirection: 'row', alignItems: 'center', gap: 6, position: 'relative', zIndex: 10 },
-    paginationShowLabel: { fontSize: 13, color: '#6B7280' },
+    paginationShowLabel: { fontSize: 12, color: '#6B7280' },
     perPageDropdown: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 6, gap: 4 },
     perPageDropdownText: { fontSize: 13, color: '#111827', fontWeight: '500' },
     perPageDropdownOptions: { position: 'absolute', bottom: '100%', right: 0, backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, marginBottom: 4, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, minWidth: 60, zIndex: 100 },
