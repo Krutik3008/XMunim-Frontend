@@ -708,7 +708,12 @@ const ShopOwnerDashboardScreen = () => {
                 <View style={styles.quickActionsRow}>
                     <TouchableOpacity
                         style={styles.quickActionBlue}
-                        onPress={() => setShowAddCustomerModal(true)}
+                        onPress={() => {
+                            setNewCustomerName('');
+                            setNewCustomerPhone('');
+                            setNewCustomerNickname('');
+                            setShowAddCustomerModal(true);
+                        }}
                     >
                         <Ionicons name="person-add-outline" size={20} color="#fff" />
                         <Text style={styles.quickActionText}>Add Customer</Text>
@@ -917,7 +922,12 @@ const ShopOwnerDashboardScreen = () => {
                         </View>
                         <TouchableOpacity
                             style={styles.addButtonBlue}
-                            onPress={() => setShowAddCustomerModal(true)}
+                            onPress={() => {
+                                setNewCustomerName('');
+                                setNewCustomerPhone('');
+                                setNewCustomerNickname('');
+                                setShowAddCustomerModal(true);
+                            }}
                         >
                             <Ionicons name="person-add-outline" size={16} color="#fff" />
                             <Text style={styles.addButtonText}>Add</Text>
