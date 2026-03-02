@@ -445,13 +445,10 @@ const CustomerDashboardScreen = () => {
             const shopInfo = ledgerData.find(item => item.shop?.id === selectedShopId)?.shop;
 
 
-            if (transactions.length === 0) {
-                alert('No transactions to export');
-                return;
-            }
+
 
             const now = new Date();
-            const reportDate = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
+            const reportDate = formatDateDisplay(now);
 
             const rows = [];
             rows.push(['My Transaction Report']);
@@ -462,11 +459,7 @@ const CustomerDashboardScreen = () => {
             rows.push([]);
             rows.push([`Customer: ${user?.name || 'Customer'} (${user?.phone || 'N/A'})`]);
             rows.push([`Report Generated: ${reportDate}`]);
-            if (dateFrom || dateTo) {
-                rows.push([`Period: ${dateFrom ? formatDateDisplay(dateFrom) : 'Beginning'} to ${dateTo ? formatDateDisplay(dateTo) : 'Today'}`]);
-            } else {
-                rows.push(['Period: Full History']);
-            }
+            rows.push([`Period: ${dateFrom || dateTo ? `${dateFrom ? formatDateDisplay(dateFrom) : 'Beginning'} to ${dateTo ? formatDateDisplay(dateTo) : 'Today'}` : 'Full History'}`]);
             rows.push([]);
 
             rows.push(['Date', 'Type', 'Items', 'Quantity', 'Amount', 'Note']);
@@ -478,7 +471,7 @@ const CustomerDashboardScreen = () => {
                 const totalQty = items.length > 0 ? items.reduce((s, i) => s + (i.quantity || 1), 0) : '';
 
                 rows.push([
-                    `${formatShortDate(t.date)} ${formatTime(t.date)}`,
+                    formatDate(t.date),
                     isPay ? 'Payment Made' : 'Credit Taken',
                     itemNames,
                     totalQty,
