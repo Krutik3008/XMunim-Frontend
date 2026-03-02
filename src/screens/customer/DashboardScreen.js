@@ -281,6 +281,10 @@ const CustomerDashboardScreen = () => {
     };
 
     const exportToPDF = async () => {
+        if (selectedShopId === 'all') {
+            showToast('Please select a particular shop to download', 'error');
+            return;
+        }
         try {
             const transactions = getFilteredTransactions();
             const now = new Date();
@@ -362,6 +366,10 @@ const CustomerDashboardScreen = () => {
     };
 
     const exportToExcel = async () => {
+        if (selectedShopId === 'all') {
+            showToast('Please select a particular shop to download', 'error');
+            return;
+        }
         try {
             const transactions = getFilteredTransactions();
             if (transactions.length === 0) {
