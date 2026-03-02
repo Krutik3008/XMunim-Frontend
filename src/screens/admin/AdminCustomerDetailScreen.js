@@ -25,51 +25,11 @@ import * as Print from 'expo-print';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as XLSX from 'xlsx';
+import { saveFileToDevice } from '../../utils/downloadHelper';
 
-// Cached download directory URI - persisted so user only picks folder ONCE
-let _savedDirUri = null;
+// Shared saveFileToDevice removed - now using utils/downloadHelper.js
 
-const saveFileToDevice = async (fileName, base64Content, mimeType) => {
-    // Load cached directory URI from config file
-    if (!_savedDirUri) {
-        try {
-            const configFile = FileSystem.documentDirectory + '_download_dir.txt';
-            const info = await FileSystem.getInfoAsync(configFile);
-            if (info.exists) {
-                _savedDirUri = await FileSystem.readAsStringAsync(configFile);
-            }
-        } catch (e) { }
-    }
-
-    // Try saving with cached directory
-    if (_savedDirUri) {
-        try {
-            const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
-                _savedDirUri, fileName, mimeType
-            );
-            await FileSystem.writeAsStringAsync(fileUri, base64Content, { encoding: 'base64' });
-            return { success: true };
-        } catch (e) {
-            _savedDirUri = null;
-        }
-    }
-
-    // First time: ask user to pick Download folder (one time only)
-    const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-    if (!permissions.granted) return { success: false };
-
-    _savedDirUri = permissions.directoryUri;
-    try {
-        const configFile = FileSystem.documentDirectory + '_download_dir.txt';
-        await FileSystem.writeAsStringAsync(configFile, _savedDirUri);
-    } catch (e) { }
-
-    const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
-        _savedDirUri, fileName, mimeType
-    );
-    await FileSystem.writeAsStringAsync(fileUri, base64Content, { encoding: 'base64' });
-    return { success: true };
-};
+// Utility function moved to downloadHelper.js
 
 const AdminCustomerDetailScreen = ({ route, customer: propCustomer, shopId: propShopId, onBack, showToast: propShowToast }) => {
 
@@ -413,10 +373,12 @@ const AdminCustomerDetailScreen = ({ route, customer: propCustomer, shopId: prop
                     showToast('Download Successful');
                 }
             } else {
-                // iOS: save to app's document directory
-                const iosPath = FileSystem.documentDirectory + pdfName;
-                await FileSystem.moveAsync({ from: newUri, to: iosPath });
-                showToast('Download Successful');
+                // iOS: save via helper
+                const base64Content = await FileSystem.readAsStringAsync(newUri, { encoding: 'base64' });
+                const result = await saveFileToDevice(pdfName, base64Content, 'application/pdf');
+                if (result.success) {
+                    showToast('Download Successful');
+                }
             }
         } catch (error) {
             showToast('Failed to generate PDF. Please try again.', 'error');
@@ -483,10 +445,11 @@ const AdminCustomerDetailScreen = ({ route, customer: propCustomer, shopId: prop
                     showToast('Download Successful');
                 }
             } else {
-                // iOS: save to app's document directory
-                const iosPath = FileSystem.documentDirectory + fileName;
-                await FileSystem.writeAsStringAsync(iosPath, wbout, { encoding: 'base64' });
-                showToast('Download Successful');
+                // iOS: save via helper
+                const result = await saveFileToDevice(fileName, wbout, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                if (result.success) {
+                    showToast('Download Successful');
+                }
             }
         } catch (error) {
             showToast('Failed to generate Excel file. Please try again.', 'error');

@@ -30,54 +30,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import CustomerHeader from '../../components/customer/CustomerHeader';
 import CustomerBottomNav from '../../components/customer/CustomerBottomNav';
+import { saveFileToDevice } from '../../utils/downloadHelper';
 
-// Cached download directory URI - persisted so user only picks folder ONCE
-let _savedDirUri = null;
-
-const saveFileToDevice = async (fileName, base64Content, mimeType) => {
-    // Load cached directory URI from config file
-    if (!_savedDirUri) {
-        try {
-            const configFile = FileSystem.documentDirectory + '_download_dir.txt';
-            const info = await FileSystem.getInfoAsync(configFile);
-            if (info.exists) {
-                _savedDirUri = await FileSystem.readAsStringAsync(configFile);
-            }
-        } catch (e) { }
-    }
-
-    // Try saving with cached directory
-    if (_savedDirUri) {
-        try {
-            const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
-                _savedDirUri, fileName, mimeType
-            );
-            await FileSystem.writeAsStringAsync(fileUri, base64Content, { encoding: 'base64' });
-            return { success: true };
-        } catch (e) {
-            // Permission may have been revoked, clear cache
-            _savedDirUri = null;
-        }
-    }
-
-    // First time: ask user to pick Download folder (one time only)
-    const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-    if (!permissions.granted) return { success: false };
-
-    // Save the directory URI for future use
-    _savedDirUri = permissions.directoryUri;
-    try {
-        const configFile = FileSystem.documentDirectory + '_download_dir.txt';
-        await FileSystem.writeAsStringAsync(configFile, _savedDirUri);
-    } catch (e) { }
-
-    // Save the file
-    const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
-        _savedDirUri, fileName, mimeType
-    );
-    await FileSystem.writeAsStringAsync(fileUri, base64Content, { encoding: 'base64' });
-    return { success: true };
-};
+// Shared saveFileToDevice removed - now using utils/downloadHelper.js
 
 const ShopLedgerDetailScreen = ({
     route,
@@ -473,10 +428,12 @@ const ShopLedgerDetailScreen = ({
                     showToast('Download Successful');
                 }
             } else {
-                // iOS: save to app's document directory
-                const iosPath = FileSystem.documentDirectory + pdfName;
-                await FileSystem.moveAsync({ from: tempUri, to: iosPath });
-                showToast('Download Successful');
+                // iOS: save via helper
+                const base64Content = await FileSystem.readAsStringAsync(tempUri, { encoding: 'base64' });
+                const result = await saveFileToDevice(pdfName, base64Content, 'application/pdf');
+                if (result.success) {
+                    showToast('Download Successful');
+                }
             }
         } catch (error) {
             console.log('PDF export error:', error);
@@ -541,10 +498,11 @@ const ShopLedgerDetailScreen = ({
                     showToast('Download Successful');
                 }
             } else {
-                // iOS: save to app's document directory
-                const iosPath = FileSystem.documentDirectory + fileName;
-                await FileSystem.writeAsStringAsync(iosPath, wbout, { encoding: 'base64' });
-                showToast('Download Successful');
+                // iOS: save via helper
+                const result = await saveFileToDevice(fileName, wbout, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                if (result.success) {
+                    showToast('Download Successful');
+                }
             }
         } catch (error) {
             console.log('Excel export error:', error);
