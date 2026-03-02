@@ -3,8 +3,8 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Backend URL - Update this to your backend server IP
-const BACKEND_URL = 'https://shopmunim-backend.onrender.com';
-// const BACKEND_URL = 'http://192.168.29.145:8000';
+// const BACKEND_URL = 'https://shopmunim-backend.onrender.com';
+const BACKEND_URL = 'http://192.168.29.145:8000';
 const API_BASE = `${BACKEND_URL}/api`;
 
 // Create axios instance

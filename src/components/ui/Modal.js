@@ -57,54 +57,57 @@ const Modal = ({
             onRequestClose={onClose}
             statusBarTranslucent={false}
         >
-            <TouchableWithoutFeedback onPress={onClose}>
-                <View style={styles.overlay}>
-                    <KeyboardAvoidingView
-                        behavior="padding"
-                        style={styles.keyboardView}
-                    >
-                        <TouchableWithoutFeedback onPress={() => { }}>
-                            <View style={[
-                                styles.container,
-                                {
-                                    maxHeight: keyboardVisible ? windowHeight * 0.5 : windowHeight * 0.85,
-                                    marginTop: keyboardVisible ? 60 : 0
-                                }
-                            ]}>
-                                {/* Header */}
-                                <View style={styles.header}>
-                                    <View style={styles.headerText}>
-                                        {title && <Text style={styles.title}>{title}</Text>}
-                                        {description && <Text style={styles.description}>{description}</Text>}
-                                    </View>
-                                    {showCloseButton && (
-                                        <TouchableOpacity
-                                            onPress={() => {
-                                                Keyboard.dismiss();
-                                                onClose();
-                                            }}
-                                            style={styles.closeButton}
-                                        >
-                                            <Ionicons name="close" size={24} color={colors.gray[500]} />
-                                        </TouchableOpacity>
-                                    )}
-                                </View>
-
-                                {/* Content */}
-                                <ScrollView
-                                    style={styles.content}
-                                    showsVerticalScrollIndicator={false}
-                                    keyboardShouldPersistTaps={keyboardShouldPersistTaps}
-                                    contentContainerStyle={{ paddingBottom: keyboardVisible ? 50 : 20 }}
-                                >
-                                    {children}
-                                </ScrollView>
+            <View style={styles.overlay}>
+                {/* Background overlay that dismisses modal */}
+                <TouchableOpacity
+                    style={StyleSheet.absoluteFill}
+                    activeOpacity={1}
+                    onPress={onClose}
+                />
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    style={styles.keyboardView}
+                    pointerEvents="box-none"
+                >
+                    <View style={[
+                        styles.container,
+                        {
+                            maxHeight: keyboardVisible ? windowHeight * 0.5 : windowHeight * 0.85,
+                            marginTop: keyboardVisible ? 60 : 0
+                        }
+                    ]}>
+                        {/* Header */}
+                        <View style={styles.header}>
+                            <View style={styles.headerText}>
+                                {title && <Text style={styles.title}>{title}</Text>}
+                                {description && <Text style={styles.description}>{description}</Text>}
                             </View>
-                        </TouchableWithoutFeedback>
-                    </KeyboardAvoidingView>
-                    {toast}
-                </View>
-            </TouchableWithoutFeedback>
+                            {showCloseButton && (
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        Keyboard.dismiss();
+                                        onClose();
+                                    }}
+                                    style={styles.closeButton}
+                                >
+                                    <Ionicons name="close" size={24} color={colors.gray[500]} />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+
+                        {/* Content */}
+                        <ScrollView
+                            style={styles.content}
+                            showsVerticalScrollIndicator={false}
+                            keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+                            contentContainerStyle={{ paddingBottom: keyboardVisible ? 50 : 20 }}
+                        >
+                            {children}
+                        </ScrollView>
+                    </View>
+                </KeyboardAvoidingView>
+                {toast}
+            </View>
         </RNModal>
     );
 };
