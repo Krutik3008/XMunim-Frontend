@@ -295,21 +295,35 @@ const CustomerDashboardScreen = () => {
                 return;
             }
 
+            // Calculate stats specifically for the filtered transactions
+            const totalCredits = transactions.filter(t => t.type === 'credit').length;
+            const totalCreditsAmount = transactions.filter(t => t.type === 'credit').reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+            const totalPayments = transactions.filter(t => t.type === 'debit' || t.type === 'payment').length;
+            const totalPaymentsAmount = transactions.filter(t => t.type === 'debit' || t.type === 'payment').reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+            const totalItems = transactions.reduce((sum, t) => {
+                const items = t.products || t.items || [];
+                return sum + items.reduce((itemSum, p) => itemSum + (p.quantity || 1), 0);
+            }, 0);
+
+            // Get selected shop info
+            const shopInfo = ledgerData.find(item => item.shop?.id === selectedShopId)?.shop;
+            const shopBalance = ledgerData.find(item => item.shop?.id === selectedShopId)?.customer?.balance || 0;
+
             const txRows = transactions.map(t => {
                 const isPay = t.type === 'debit' || t.type === 'payment' || t.type === 'CREDIT';
                 const items = t.products || t.items || [];
                 const itemNames = items.map(i => i.name || 'Item').join(', ') || '-';
                 const totalQty = items.reduce((s, i) => s + (i.quantity || 1), 0);
                 const typeColor = isPay ? '#10B981' : '#DC2626';
-                const typeLabel = isPay ? 'Payment' : 'Credit';
+                const typeLabel = isPay ? 'Payment Made' : 'Credit Taken';
                 const amountColor = isPay ? '#10B981' : '#DC2626';
                 return `<tr>
                     <td>${formatShortDate(t.date)}</td>
-                    <td>${t.shopName || '-'}</td>
                     <td style="color:${typeColor};font-weight:600">${typeLabel}</td>
                     <td>${itemNames}</td>
                     <td>${items.length > 0 ? totalQty : '-'}</td>
                     <td style="color:${amountColor};font-weight:600">₹${parseFloat(t.amount || 0).toFixed(2)}</td>
+                    <td>${t.note || t.notes || '-'}</td>
                 </tr>`;
             }).join('');
 
@@ -319,31 +333,82 @@ const CustomerDashboardScreen = () => {
                 body { font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; color: #111827; font-size: 12px; }
                 .header { text-align: center; margin-bottom: 24px; }
                 .header h1 { font-size: 20px; color: #111827; margin-bottom: 6px; }
+                .header h1 span { color: #2563EB; margin-right: 6px; }
                 .generated { color: #6B7280; font-size: 11px; margin-top: 4px; }
                 .section { background: #F9FAFB; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+                .section-title { font-size: 14px; font-weight: bold; color: #111827; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+                .section-title span { color: #2563EB; }
                 .info-row { margin-bottom: 4px; font-size: 12px; color: #374151; }
+                .info-row b { color: #111827; min-width: 110px; display: inline-block; }
+                .analytics { display: flex; gap: 12px; margin-bottom: 20px; }
+                .analytics-box { flex: 1; border: 1px solid #E5E7EB; border-radius: 8px; padding: 14px; text-align: center; background: #fff; }
+                .analytics-box .label { font-size: 11px; color: #374151; font-weight: 600; margin-bottom: 8px; }
+                .analytics-box .value { font-size: 18px; font-weight: bold; }
+                .analytics-box .sub { font-size: 12px; color: #374151; margin-top: 2px; }
+                .green { color: #10B981; }
+                .red { color: #DC2626; }
+                .blue { color: #2563EB; }
                 table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
                 th { background: #F9FAFB; color: #6B7280; padding: 10px 8px; text-align: left; font-size: 11px; font-weight: 600; border-bottom: 2px solid #E5E7EB; }
                 td { padding: 10px 8px; border-bottom: 1px solid #F3F4F6; font-size: 11px; }
+                tr:hover { background: #FAFAFA; }
+                .footer { text-align: center; color: #9CA3AF; font-size: 10px; margin-top: 20px; padding-top: 12px; border-top: 1px solid #E5E7EB; }
             </style></head><body>
+
                 <div class="header">
-                    <h1>My Transaction Report</h1>
+                    <h1><span>📋</span> Transaction Report</h1>
                     <div class="generated">${dateFrom || dateTo ? `Period: ${dateFrom ? formatDateDisplay(dateFrom) : 'Beginning'} to ${dateTo ? formatDateDisplay(dateTo) : 'Today'}` : 'Full History'}</div>
                     <div class="generated">Generated on: ${generatedDate}</div>
                 </div>
+
                 <div class="section">
-                    <div style="font-weight: bold; margin-bottom: 6px; color: #D97706;">Customer Information</div>
+                    <div class="section-title"><span>🏪</span> Shop Information</div>
+                    <div class="info-row"><b>Shop Name:</b> ${shopInfo?.name || 'N/A'}</div>
+                    <div class="info-row"><b>Category:</b> ${shopInfo?.category || 'N/A'}</div>
+                    <div class="info-row"><b>Location:</b> ${shopInfo?.location || 'N/A'}</div>
+                    <div class="info-row"><b>Shop Code:</b> ${shopInfo?.shop_code || 'N/A'}</div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title"><span>👤</span> Personal Information</div>
                     <div class="info-row"><b>Name:</b> ${user?.name || 'Customer'}</div>
                     <div class="info-row"><b>Phone:</b> +91 ${user?.phone || 'N/A'}</div>
+                    <div class="info-row"><b>Current Balance:</b> ${shopBalance !== 0 ? (shopBalance > 0 ? '+' : '-') : ''}₹${Math.abs(shopBalance || 0).toFixed(2)}</div>
+                    <div class="info-row"><b>Status:</b> ${shopBalance > 0 ? 'Credit' : (shopBalance < 0 ? 'Dues' : 'Clear')}</div>
                 </div>
+
+                <div class="analytics">
+                    <div class="analytics-box">
+                        <div class="label">Total Transactions</div>
+                        <div class="value blue">${transactions.length}</div>
+                    </div>
+                    <div class="analytics-box">
+                        <div class="label">Credit Taken</div>
+                        <div class="value red">${totalCredits}</div>
+                        <div class="sub">₹${totalCreditsAmount.toFixed(2)}</div>
+                    </div>
+                    <div class="analytics-box">
+                        <div class="label">Payments Made</div>
+                        <div class="value green">${totalPayments}</div>
+                        <div class="sub">₹${totalPaymentsAmount.toFixed(2)}</div>
+                    </div>
+                    <div class="analytics-box">
+                        <div class="label">Items Purchased</div>
+                        <div class="value blue">${totalItems}</div>
+                    </div>
+                </div>
+
                 <table>
-                    <tr><th>Date</th><th>Shop</th><th>Type</th><th>Items</th><th>Qty</th><th>Amount</th></tr>
+                    <tr><th>Date</th><th>Type</th><th>Items</th><th>Qty</th><th>Amount</th><th>Note</th></tr>
                     ${txRows}
                 </table>
+                <div class="footer">
+                    Report generated via ShopMunim App
+                </div>
             </body></html>`;
 
             const { uri } = await Print.printToFileAsync({ html });
-            const fileName = `My_Report_${user?.name || 'Customer'}.pdf`;
+            const fileName = `My_Report_${shopInfo?.name || 'Shop'}.pdf`;
             const fileUri = FileSystem.cacheDirectory + fileName;
             await FileSystem.moveAsync({ from: uri, to: fileUri });
 
@@ -372,39 +437,64 @@ const CustomerDashboardScreen = () => {
         }
         try {
             const transactions = getFilteredTransactions();
+            const shopInfo = ledgerData.find(item => item.shop?.id === selectedShopId)?.shop;
+
+
             if (transactions.length === 0) {
                 alert('No transactions to export');
                 return;
             }
 
+            const now = new Date();
+            const reportDate = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
+
             const rows = [];
             rows.push(['My Transaction Report']);
-            rows.push(['Customer:', user?.name || 'Customer']);
+            rows.push([`Shop: ${shopInfo?.name || 'N/A'}`]);
+            rows.push([`Category: ${shopInfo?.category || 'N/A'}`]);
+            rows.push([`Location: ${shopInfo?.location || 'N/A'}`]);
+            rows.push([`Shop Code: ${shopInfo?.shop_code || 'N/A'}`]);
+            rows.push([]);
+            rows.push([`Customer: ${user?.name || 'Customer'} (${user?.phone || 'N/A'})`]);
+            rows.push([`Report Generated: ${reportDate}`]);
             rows.push(['From Date:', dateFrom ? formatDateDisplay(dateFrom) : 'All Time']);
-            rows.push(['To Date:', dateTo ? formatDateDisplay(dateTo) : 'Present']);
+            rows.push(['To Date:', dateTo ? formatDateDisplay(dateTo) : 'Today']);
             rows.push([]);
 
-            rows.push(['Date', 'Shop', 'Type', 'Items', 'Quantity', 'Amount', 'Note']);
+            rows.push(['Date', 'Type', 'Items', 'Quantity', 'Amount', 'Note']);
+
             transactions.forEach(t => {
                 const isPay = t.type === 'debit' || t.type === 'payment' || t.type === 'CREDIT';
                 const items = t.products || t.items || [];
+                const itemNames = items.map(i => i.name || 'Item').join(', ') || '';
+                const totalQty = items.length > 0 ? items.reduce((s, i) => s + (i.quantity || 1), 0) : '';
+
                 rows.push([
                     formatShortDate(t.date),
-                    t.shopName || '-',
-                    isPay ? 'Payment' : 'Purchase',
-                    items.map(i => i.name).join(', '),
-                    items.reduce((s, i) => s + (i.quantity || 1), 0),
+                    isPay ? 'Payment Made' : 'Credit Taken',
+                    itemNames,
+                    totalQty,
                     parseFloat(t.amount || 0),
                     t.note || t.notes || ''
                 ]);
             });
 
             const ws = XLSX.utils.aoa_to_sheet(rows);
+
+            ws['!cols'] = [
+                { wch: 22 }, // Date
+                { wch: 20 }, // Type
+                { wch: 15 }, // Items
+                { wch: 10 }, // Quantity
+                { wch: 12 }, // Amount
+                { wch: 15 }, // Note
+            ];
+
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
             const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
 
-            const fileName = `My_Report_${user?.name || 'Customer'}.xlsx`;
+            const fileName = `My_Report_${shopInfo?.name || 'Shop'}.xlsx`;
             const fileUri = FileSystem.cacheDirectory + fileName;
             await FileSystem.writeAsStringAsync(fileUri, wbout, { encoding: 'base64' });
 
