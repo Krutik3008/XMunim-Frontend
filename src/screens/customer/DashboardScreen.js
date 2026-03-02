@@ -237,6 +237,16 @@ const CustomerDashboardScreen = () => {
         }
     };
 
+    const formatTime = (dateString) => {
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return "";
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
+        } catch (e) {
+            return "";
+        }
+    };
+
     const formatDateDisplay = (date) => {
         if (!date) return '';
         const d = date.getDate().toString().padStart(2, '0');
@@ -318,7 +328,7 @@ const CustomerDashboardScreen = () => {
                 const typeLabel = isPay ? 'Payment Made' : 'Credit Taken';
                 const amountColor = isPay ? '#10B981' : '#DC2626';
                 return `<tr>
-                    <td>${formatShortDate(t.date)}</td>
+                    <td>${formatShortDate(t.date)}<br/><span style="font-size:9px;color:#6B7280">${formatTime(t.date)}</span></td>
                     <td style="color:${typeColor};font-weight:600">${typeLabel}</td>
                     <td>${itemNames}</td>
                     <td>${items.length > 0 ? totalQty : '-'}</td>
@@ -457,8 +467,11 @@ const CustomerDashboardScreen = () => {
             rows.push([]);
             rows.push([`Customer: ${user?.name || 'Customer'} (${user?.phone || 'N/A'})`]);
             rows.push([`Report Generated: ${reportDate}`]);
-            rows.push(['From Date:', dateFrom ? formatDateDisplay(dateFrom) : 'All Time']);
-            rows.push(['To Date:', dateTo ? formatDateDisplay(dateTo) : 'Today']);
+            if (dateFrom || dateTo) {
+                rows.push(['Period:', `${dateFrom ? formatDateDisplay(dateFrom) : 'Beginning'} to ${dateTo ? formatDateDisplay(dateTo) : 'Today'}`]);
+            } else {
+                rows.push(['Period:', 'Full History']);
+            }
             rows.push([]);
 
             rows.push(['Date', 'Type', 'Items', 'Quantity', 'Amount', 'Note']);
@@ -470,7 +483,7 @@ const CustomerDashboardScreen = () => {
                 const totalQty = items.length > 0 ? items.reduce((s, i) => s + (i.quantity || 1), 0) : '';
 
                 rows.push([
-                    formatShortDate(t.date),
+                    `${formatShortDate(t.date)} ${formatTime(t.date)}`,
                     isPay ? 'Payment Made' : 'Credit Taken',
                     itemNames,
                     totalQty,

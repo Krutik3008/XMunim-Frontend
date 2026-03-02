@@ -256,6 +256,16 @@ const CustomerDetailScreen = ({ route, navigation }) => {
         }
     };
 
+    const formatTime = (dateString) => {
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return "";
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
+        } catch (e) {
+            return "";
+        }
+    };
+
     const formatDateDisplay = (date) => {
         if (!date) return '';
         const d = date.getDate().toString().padStart(2, '0');
@@ -278,7 +288,7 @@ const CustomerDetailScreen = ({ route, navigation }) => {
                 const typeLabel = isPay ? 'Payment Received' : 'Credit Given';
                 const amountColor = isPay ? '#10B981' : '#DC2626';
                 return `<tr>
-                    <td>${formatShortDate(t.date)}</td>
+                    <td>${formatShortDate(t.date)}<br/><span style="font-size:9px;color:#6B7280">${formatTime(t.date)}</span></td>
                     <td style="color:${typeColor};font-weight:600">${typeLabel}</td>
                     <td>${itemNames}</td>
                     <td>${items.length > 0 ? totalQty : '-'}</td>
@@ -359,8 +369,11 @@ const CustomerDetailScreen = ({ route, navigation }) => {
             rows.push(['Customer Transaction Report']);
             rows.push(['Shop:', shopDetails?.name || 'N/A']);
             rows.push(['Customer:', customer.name]);
-            rows.push(['From Date:', dateFrom ? formatDateDisplay(dateFrom) : 'All Time']);
-            rows.push(['To Date:', dateTo ? formatDateDisplay(dateTo) : 'Present']);
+            if (dateFrom || dateTo) {
+                rows.push(['Period:', `${dateFrom ? formatDateDisplay(dateFrom) : 'Beginning'} to ${dateTo ? formatDateDisplay(dateTo) : 'Today'}`]);
+            } else {
+                rows.push(['Period:', 'Full History']);
+            }
             rows.push([]); // Empty spacing row
 
             // Add Table Headers
@@ -369,7 +382,7 @@ const CustomerDetailScreen = ({ route, navigation }) => {
                 const isPay = t.type === 'debit' || t.type === 'payment' || t.type === 'CREDIT';
                 const items = t.products || t.items || [];
                 rows.push([
-                    formatShortDate(t.date),
+                    `${formatShortDate(t.date)} ${formatTime(t.date)}`,
                     isPay ? 'Payment' : 'Purchase',
                     items.map(i => i.name).join(', '),
                     items.reduce((s, i) => s + (i.quantity || 1), 0),
