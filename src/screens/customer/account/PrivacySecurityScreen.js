@@ -196,28 +196,6 @@ const PrivacySecurityScreen = () => {
         );
     };
 
-    const handleDeleteAccount = () => {
-        Alert.alert(
-            'Delete Account',
-            'Are you sure you want to delete your account? This action is permanent and all your transaction records will be wiped.',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Confirm Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            await authAPI.deleteAccount();
-                            logout();
-                            handleFeatureAlert('Account Deleted', 'Your account has been permanently removed.');
-                        } catch (error) {
-                            handleFeatureAlert('Error', 'Failed to delete account. Please try again.');
-                        }
-                    }
-                }
-            ]
-        );
-    };
 
     const InfoRow = ({ icon, title, subtitle, onPress, showBorder = true, iconColor = colors.primary.blue }) => (
         <TouchableOpacity
@@ -359,10 +337,6 @@ const PrivacySecurityScreen = () => {
                     />
                 </View>
 
-                <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount}>
-                    <Ionicons name="trash-outline" size={20} color={colors.error} style={{ marginRight: 8 }} />
-                    <Text style={styles.deleteText}>Delete Personal Data & Account</Text>
-                </TouchableOpacity>
 
                 <View style={styles.footer}>
                     <Text style={styles.versionText}>ShopMunim Production v1.2.4</Text>
@@ -455,19 +429,6 @@ const styles = StyleSheet.create({
     rowSubtitle: { fontSize: 13, color: colors.gray[500], marginTop: 3 },
 
     // Action Buttons
-    deleteButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 18,
-        backgroundColor: '#FEF2F2',
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: '#FEE2E2',
-        marginBottom: 32,
-        ...shadows.sm,
-    },
-    deleteText: { color: colors.error, fontWeight: '700', fontSize: 15 },
 
     // Footer
     footer: { alignItems: 'center', gap: 6, marginTop: 12, marginBottom: 10 },

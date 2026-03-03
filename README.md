@@ -93,6 +93,11 @@ npx expo start --tunnel
 
 #### 👤 Account Tab
 - View profile info (name, phone, role)
+- **Privacy & Security**:
+  - **Security Health**: Dynamic score based on account verification and setup
+  - **Active Sessions**: View and manage all devices logged into your account
+  - **Data Export**: Request a PDF export of all your personal transaction data
+  - **Governance**: End-to-end secure connection with 256-bit AES encryption
 - Role switch button (switch to Shop Owner / Admin if eligible)
 
 ---
