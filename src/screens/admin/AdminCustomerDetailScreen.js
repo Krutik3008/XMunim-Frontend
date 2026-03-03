@@ -311,10 +311,7 @@ const AdminCustomerDetailScreen = ({ route, customer: propCustomer, shopId: prop
                 <div class="section">
                     <div class="section-title"><span>🏪</span> Shop Information</div>
                     <div class="info-row"><b>Shop Name:</b> ${shopDetails?.name || 'N/A'}</div>
-                    <div class="info-row"><b>Category:</b> ${shopDetails?.category || 'N/A'}</div>
                     <div class="info-row"><b>Location:</b> ${shopDetails?.location || 'N/A'}</div>
-                    <div class="info-row"><b>Shop Code:</b> ${shopDetails?.shop_code || 'N/A'}</div>
-                    <div class="info-row"><b>Owner:</b> ${shopDetails?.owner_name || 'User'} (${shopDetails?.owner_phone || 'N/A'})</div>
                 </div>
 
                 <div class="section">
@@ -394,9 +391,7 @@ const AdminCustomerDetailScreen = ({ route, customer: propCustomer, shopId: prop
             const rows = [];
             rows.push(['Customer Transaction Report']);
             rows.push([`Shop: ${shopDetails?.name || 'N/A'}`]);
-            rows.push([`Category: ${shopDetails?.category || 'N/A'}`]);
             rows.push([`Location: ${shopDetails?.location || 'N/A'}`]);
-            rows.push([`Shop Code: ${shopDetails?.shop_code || 'N/A'}`]);
             rows.push([]);
             rows.push([`Customer: ${customer.name} (${customer.phone || 'N/A'})`]);
             rows.push([`Report Generated: ${reportDate}`]);

@@ -329,9 +329,7 @@ const CustomerDashboardScreen = () => {
                 <div class="section">
                     <div class="section-title"><span>🏪</span> Shop Information</div>
                     <div class="info-row"><b>Shop Name:</b> ${shopInfo?.name || 'N/A'}</div>
-                    <div class="info-row"><b>Category:</b> ${shopInfo?.category || 'N/A'}</div>
                     <div class="info-row"><b>Location:</b> ${shopInfo?.location || 'N/A'}</div>
-                    <div class="info-row"><b>Shop Code:</b> ${shopInfo?.shop_code || 'N/A'}</div>
                 </div>
 
                 <div class="section">
@@ -415,9 +413,7 @@ const CustomerDashboardScreen = () => {
             const rows = [];
             rows.push(['My Transaction Report']);
             rows.push([`Shop: ${shopInfo?.name || 'N/A'}`]);
-            rows.push([`Category: ${shopInfo?.category || 'N/A'}`]);
             rows.push([`Location: ${shopInfo?.location || 'N/A'}`]);
-            rows.push([`Shop Code: ${shopInfo?.shop_code || 'N/A'}`]);
             rows.push([]);
             rows.push([`Customer: ${user?.name || 'Customer'} (${user?.phone || 'N/A'})`]);
             rows.push([`Report Generated: ${reportDate}`]);

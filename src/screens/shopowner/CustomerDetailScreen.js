@@ -328,9 +328,7 @@ const CustomerDetailScreen = ({ route, navigation }) => {
             // Add Header Info
             rows.push(['Customer Transaction Report']);
             rows.push([`Shop: ${shopDetails?.name || 'N/A'}`]);
-            rows.push([`Category: ${shopDetails?.category || 'N/A'}`]);
             rows.push([`Location: ${shopDetails?.location || 'N/A'}`]);
-            rows.push([`Shop Code: ${shopDetails?.shop_code || 'N/A'}`]);
             rows.push([]);
             rows.push([`Customer: ${customer.name} (${customer.phone || 'N/A'})`]);
             rows.push([`Period: ${dateFrom || dateTo ? `${dateFrom ? formatDateDisplay(dateFrom) : 'Beginning'} to ${dateTo ? formatDateDisplay(dateTo) : 'Today'}` : 'Full History'}`]);

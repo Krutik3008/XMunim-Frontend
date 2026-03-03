@@ -367,9 +367,7 @@ const ShopLedgerDetailScreen = ({
                 <div class="section">
                     <div class="section-title"><span>🏪</span> Shop Information</div>
                     <div class="info-row"><b>Shop Name:</b> ${shopDetails?.name || 'N/A'}</div>
-                    <div class="info-row"><b>Category:</b> ${shopDetails?.category || 'N/A'}</div>
                     <div class="info-row"><b>Location:</b> ${shopDetails?.location || 'N/A'}</div>
-                    <div class="info-row"><b>Shop Code:</b> ${shopDetails?.shop_code || 'N/A'}</div>
                 </div>
 
                 <div class="section">
@@ -447,10 +445,9 @@ const ShopLedgerDetailScreen = ({
             const reportDate = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
 
             const rows = [];
+            rows.push(['My Transaction Report']);
             rows.push([`Shop: ${shopDetails?.name || 'N/A'}`]);
-            rows.push([`Category: ${shopDetails?.category || 'N/A'}`]);
             rows.push([`Location: ${shopDetails?.location || 'N/A'}`]);
-            rows.push([`Shop Code: ${shopDetails?.shop_code || 'N/A'}`]);
             rows.push([]);
             rows.push([`Customer: ${customer.name} (${customer.phone})`]);
             rows.push([`Report Generated: ${reportDate}`]);
