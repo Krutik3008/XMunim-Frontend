@@ -1445,7 +1445,14 @@ const ShopOwnerDashboardScreen = () => {
 
                     <TouchableOpacity style={styles.settingItem} onPress={() => navigation.navigate('EditProfile')}>
                         <Ionicons name="person-outline" size={22} color="#4B5563" style={{ marginRight: 12 }} />
-                        <Text style={styles.settingText}>Edit Profile</Text>
+                        <Text style={styles.settingText}>Profile Info</Text>
+                        <Ionicons name="create-outline" size={18} color="#6B7280" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.settingItem} onPress={() => navigation.navigate('CreateShop', { shop: currentShop })}>
+                        <Ionicons name="storefront-outline" size={22} color="#4B5563" style={{ marginRight: 12 }} />
+                        <Text style={styles.settingText}>Shop Info</Text>
+                        <Ionicons name="create-outline" size={18} color="#6B7280" />
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.settingItem} onPress={() => navigation.navigate('Notifications')}>
