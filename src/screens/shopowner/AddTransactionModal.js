@@ -215,6 +215,11 @@ const AddTransactionModal = ({ visible, onClose, shopId, onSuccess, preselectedC
             return;
         }
 
+        if (!selectedCustomer?.is_verified) {
+            showToast('Customer verification required. Please verify customer before adding transactions.');
+            return;
+        }
+
         const amount = calculateTotal();
         if (amount <= 0) {
             showToast('Amount must be greater than zero');
@@ -263,6 +268,32 @@ const AddTransactionModal = ({ visible, onClose, shopId, onSuccess, preselectedC
     };
 
     const selectedCustomer = customers.find(c => c.id === customerId) || (customerId && preselectedCustomer?.id === customerId ? preselectedCustomer : null);
+
+    const [sendingVerification, setSendingVerification] = useState(false);
+    const handleSendVerificationInModal = async () => {
+        if (!selectedCustomer) return;
+        setSendingVerification(true);
+        try {
+            const response = await customerAPI.sendVerification(shopId, selectedCustomer.id);
+            const link = response.data?.verification_link;
+
+            if (link) {
+                const message = `Hello ${selectedCustomer.name},\n\nWelcome to our shop! We've added you to our digital ledger on ShopMunim.\n\nPlease click the link below to verify your number and activate your account:\n${link}\n\nThank you!`;
+                const url = `whatsapp://send?phone=91${selectedCustomer.phone}&text=${encodeURIComponent(message)}`;
+                const canOpen = await Linking.canOpenURL(url);
+                if (canOpen) {
+                    await Linking.openURL(url);
+                } else {
+                    await Linking.openURL(`https://wa.me/91${selectedCustomer.phone}?text=${encodeURIComponent(message)}`);
+                }
+                showToast('Verification link sent successfully');
+            }
+        } catch (error) {
+            showToast(getAPIErrorMessage(error));
+        } finally {
+            setSendingVerification(false);
+        }
+    };
     const totalAmount = calculateTotal();
 
     return (
@@ -358,6 +389,31 @@ const AddTransactionModal = ({ visible, onClose, shopId, onSuccess, preselectedC
                         </>
                     )}
                 </View>
+
+                {selectedCustomer && !selectedCustomer.is_verified && (
+                    <View style={styles.verificationWarning}>
+                        <Ionicons name="warning" size={20} color="#B45309" style={{ marginRight: 8 }} />
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.verificationWarningText}>
+                                Verification Pending. You cannot add transactions until this customer is verified.
+                            </Text>
+                            <TouchableOpacity
+                                style={styles.sendVerificationLinkBtn}
+                                onPress={handleSendVerificationInModal}
+                                disabled={sendingVerification}
+                            >
+                                {sendingVerification ? (
+                                    <ActivityIndicator size="small" color="#2563EB" />
+                                ) : (
+                                    <>
+                                        <Ionicons name="logo-whatsapp" size={16} color="#2563EB" />
+                                        <Text style={styles.sendVerificationLinkText}>Send Verification Link</Text>
+                                    </>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
 
                 <Select
                     label="Transaction Type"
@@ -528,9 +584,9 @@ const AddTransactionModal = ({ visible, onClose, shopId, onSuccess, preselectedC
                 {/* Footer Action */}
                 <View style={styles.footer}>
                     <TouchableOpacity
-                        style={[styles.submitBtn, loading && styles.disabledBtn]}
+                        style={[styles.submitBtn, (loading || (selectedCustomer && !selectedCustomer.is_verified)) && styles.disabledBtn]}
                         onPress={handleSubmit}
-                        disabled={loading}
+                        disabled={loading || (selectedCustomer && !selectedCustomer.is_verified)}
                     >
                         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Add Transaction</Text>}
                     </TouchableOpacity>
@@ -741,6 +797,33 @@ const styles = StyleSheet.create({
         padding: spacing.md,
         textAlign: 'center',
         color: colors.gray[500],
+    },
+    verificationWarning: {
+        flexDirection: 'row',
+        backgroundColor: '#FFFBEB',
+        borderColor: '#FDE68A',
+        borderWidth: 1,
+        borderRadius: borderRadius.lg,
+        padding: spacing.md,
+        marginBottom: spacing.md,
+    },
+    verificationWarningText: {
+        fontSize: fontSize.sm,
+        color: '#92400E',
+        marginBottom: 8,
+    },
+    sendVerificationLinkBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    sendVerificationLinkText: {
+        fontSize: fontSize.sm,
+        fontWeight: '600',
+        color: '#2563EB',
+    },
+    disabledBtn: {
+        backgroundColor: colors.gray[300],
     },
     selectedItemsCard: {
         marginTop: spacing.sm,

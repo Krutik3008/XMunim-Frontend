@@ -435,11 +435,13 @@ const ShopOwnerDashboardScreen = () => {
             const savedName = newCustomerName.trim();
             const savedPhone = newCustomerPhone.trim();
 
-            await customerAPI.create(shopId, {
+            const res = await customerAPI.create(shopId, {
                 name: savedName,
                 phone: savedPhone,
                 nickname: newCustomerNickname.trim() || null
             });
+
+            const newlyCreatedCustomerId = res.data?.id;
 
             setShowAddCustomerModal(false);
             showToast('Customer added successfully');
@@ -455,13 +457,13 @@ const ShopOwnerDashboardScreen = () => {
             // After successful add, ask to send WhatsApp
             setTimeout(() => {
                 Alert.alert(
-                    'Send Invitation',
-                    `Would you like to send a welcome message to ${savedName} on WhatsApp?`,
+                    'Send Invitation & Verify',
+                    `Would you like to send a welcome message and verification link to ${savedName} on WhatsApp?`,
                     [
                         { text: 'Skip', style: 'cancel' },
                         {
-                            text: 'Send',
-                            onPress: () => handleVerifyWhatsApp(savedPhone, savedName)
+                            text: 'Send Link',
+                            onPress: () => handleSendVerification(shopId, newlyCreatedCustomerId, savedPhone, savedName)
                         }
                     ]
                 );
@@ -483,7 +485,8 @@ const ShopOwnerDashboardScreen = () => {
             return;
         }
         const currentShop = shops.find(s => s.id === user?.shop_id) || shops[0];
-        const message = `Hello ${targetName || 'Customer'}, this is ${currentShop?.name || 'our shop'}. We are adding you to our digital ledger on ShopMunim. Please confirm if this is your correct number.`;
+        const shopName = currentShop?.name || 'our store';
+        const message = `Hello ${targetName || 'Customer'}, this is ${shopName}. We are adding you to our digital ledger on ShopMunim. Please confirm if this is your correct number.`;
         const url = `whatsapp://send?phone=91${targetPhone}&text=${encodeURIComponent(message)}`;
 
         try {
@@ -497,6 +500,31 @@ const ShopOwnerDashboardScreen = () => {
         } catch (error) {
             console.log('WhatsApp Error:', error);
             showToast('Could not open WhatsApp');
+        }
+    };
+
+    const handleSendVerification = async (shopId, customerId, phone, name) => {
+        try {
+            const response = await customerAPI.sendVerification(shopId, customerId);
+            const link = response.data?.verification_link;
+
+            if (link) {
+                const shopName = currentShop?.name || 'our store';
+                const message = `Hello ${name || 'Customer'},\n\nWelcome to ${shopName}! We've added you to our digital ledger on ShopMunim.\n\nPlease click the link below to verify your number and activate your account:\n${link}\n\nThank you!`;
+
+                const url = `whatsapp://send?phone=91${phone}&text=${encodeURIComponent(message)}`;
+                const canOpen = await Linking.canOpenURL(url);
+                if (canOpen) {
+                    await Linking.openURL(url);
+                } else {
+                    await Linking.openURL(`https://wa.me/91${phone}?text=${encodeURIComponent(message)}`);
+                }
+            } else {
+                showToast('Failed to generate verification link');
+            }
+        } catch (error) {
+            console.log('Verification Link Error:', error);
+            showToast(getAPIErrorMessage(error));
         }
     };
 
@@ -1016,10 +1044,15 @@ const ShopOwnerDashboardScreen = () => {
                                     </Text>
                                 </View>
                                 <View style={styles.customerInfo}>
-                                    <Text style={styles.customerName}>
-                                        {customer.name}
-                                        {customer.nickname ? ` (${customer.nickname})` : ''}
-                                    </Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <Text style={styles.customerName}>
+                                            {customer.name}
+                                            {customer.nickname ? ` (${customer.nickname})` : ''}
+                                        </Text>
+                                        {customer.is_verified && (
+                                            <Ionicons name="checkmark-circle" size={16} color="#10B981" style={{ marginLeft: 6 }} />
+                                        )}
+                                    </View>
                                     <Text style={styles.customerPhone}>+91 {customer.phone}</Text>
                                     <View style={styles.customerBalance}>
                                         <View style={[

@@ -505,6 +505,10 @@ const CustomerDetailScreen = ({ route, navigation }) => {
 
         Keyboard.dismiss();
 
+        const phoneChanged = editPhone.trim() !== customer.phone;
+        const savedPhone = editPhone.trim();
+        const savedName = editName.trim();
+
         setUpdatingCustomer(true);
         try {
             const updateData = {
@@ -519,12 +523,53 @@ const CustomerDetailScreen = ({ route, navigation }) => {
             setShowEditCustomerModal(false);
 
             // Update local state
-            setCustomer(prev => ({ ...prev, ...updateData }));
+            setCustomer(prev => ({ ...prev, ...updateData, is_verified: phoneChanged ? false : prev.is_verified }));
+
+            if (phoneChanged) {
+                setTimeout(() => {
+                    Alert.alert(
+                        'Phone Number Changed',
+                        'Since the phone number has changed, the customer needs to be re-verified. Send verification link now?',
+                        [
+                            { text: 'Skip', style: 'cancel' },
+                            {
+                                text: 'Send Link',
+                                onPress: () => handleSendVerification(shopId, customer.id, savedPhone, savedName)
+                            }
+                        ]
+                    );
+                }, 500);
+            }
             // loadData(); // Optional, but local update is faster
         } catch (error) {
             showToast('Failed to update customer', error);
         } finally {
             setUpdatingCustomer(false);
+        }
+    };
+
+    const handleSendVerification = async (shopId, customerId, phone, name) => {
+        try {
+            const response = await customerAPI.sendVerification(shopId, customerId);
+            const link = response.data?.verification_link;
+
+            if (link) {
+                const shopName = shopDetails?.name || 'our store';
+                const message = `Hello ${name || 'Customer'},\n\nWelcome to ${shopName}! We've added you to our digital ledger on ShopMunim.\n\nPlease click the link below to verify your number and activate your account:\n${link}\n\nThank you!`;
+
+                const url = `whatsapp://send?phone=91${phone}&text=${encodeURIComponent(message)}`;
+                const canOpen = await Linking.canOpenURL(url);
+                if (canOpen) {
+                    await Linking.openURL(url);
+                } else {
+                    await Linking.openURL(`https://wa.me/91${phone}?text=${encodeURIComponent(message)}`);
+                }
+            } else {
+                showToast('Failed to generate verification link');
+            }
+        } catch (error) {
+            console.log('Verification Link Error:', error);
+            showToast(getAPIErrorMessage(error));
         }
     };
 
@@ -635,10 +680,15 @@ const CustomerDetailScreen = ({ route, navigation }) => {
                         {/* Customer Info Card */}
                         <View style={styles.customerCard}>
                             <View style={styles.customerLeft}>
-                                <Text style={styles.customerName}>
-                                    {customer?.name || 'Unknown'}
-                                    {customer?.nickname ? ` (${customer.nickname})` : ''}
-                                </Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <Text style={styles.customerName}>
+                                        {customer?.name || 'Unknown'}
+                                        {customer?.nickname ? ` (${customer.nickname})` : ''}
+                                    </Text>
+                                    {customer?.is_verified && (
+                                        <Ionicons name="checkmark-circle" size={20} color="#10B981" style={{ marginLeft: 8 }} />
+                                    )}
+                                </View>
                                 <Text style={styles.customerPhone}>+91 {customer?.phone || 'N/A'}</Text>
                                 <View style={styles.customerBalanceRow}>
                                     <View style={[styles.balanceBadge, { backgroundColor: getBalanceBgColor() }]}>
