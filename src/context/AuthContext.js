@@ -206,22 +206,23 @@ export const AuthProvider = ({ children }) => {
             // Avoid redundant logout calls if already logged out
             if (!isAuthenticated && !user) return;
 
-            console.log('Executing reactive logout...');
+            // 1. Best-effort server logout BEFORE clearing local token
+            // This ensures the token is still available in headers for the API call
+            try {
+                await authAPI.logout();
+            } catch (e) {
+                if (__DEV__) console.log('Server session already removed or inaccessible');
+            }
 
-            // 1. Immediately update state to trigger UI redirect to AuthStack
+            // 2. Immediately update state to trigger UI redirect to AuthStack
             setIsAuthenticated(false);
             setUser(null);
             setLogoutToast(true);
 
-            // 2. Perform cleanup
+            // 3. Perform local cleanup
             await AsyncStorage.multiRemove(['token', 'user']);
 
-            // 3. Best-effort server logout (don't let it block local state change)
-            authAPI.logout().catch(() => {
-                if (__DEV__) console.log('Server session already removed or inaccessible');
-            });
-
-            console.log('Logged out successfully (State Reset & Storage Cleared)');
+            console.log('Logged out successfully (Server notified, State Reset & Storage Cleared)');
         } catch (error) {
             console.error('Logout error:', error);
         }
