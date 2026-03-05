@@ -37,6 +37,8 @@ import QRCode from 'react-native-qrcode-svg';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import * as Clipboard from 'expo-clipboard';
+import * as Print from 'expo-print';
+import * as LegacyFileSystem from 'expo-file-system/legacy';
 
 import { colors, shadows } from '../../theme';
 
@@ -583,9 +585,106 @@ const ShopOwnerDashboardScreen = () => {
         }
     };
 
-    const handleDownloadQr = () => {
-        // Reusing share for now as it provides save options
-        handleShareQr();
+    const handleDownloadQr = async () => {
+        try {
+            if (!viewShotRef.current) {
+                showToast('QR code not ready');
+                return;
+            }
+            const uri = await viewShotRef.current.capture();
+            if (!uri) {
+                showToast('Failed to capture QR code');
+                return;
+            }
+            const base64Img = await LegacyFileSystem.readAsStringAsync(uri, {
+                encoding: LegacyFileSystem.EncodingType.Base64,
+            });
+            const currentShop = shops.find(s => s.id === user?.shop_id) || shops[0];
+            const shopName = currentShop?.name || 'Shop';
+            const shopCode = currentShop?.shop_code || '';
+
+            const html = `<html><head><meta charset="UTF-8"></head>
+            <body style="margin:0;padding:60px 40px;font-family:sans-serif;text-align:center;">
+                <div style="max-width:400px;margin:0 auto;border:2px solid #E5E7EB;border-radius:20px;padding:40px 30px;">
+                    <h1 style="color:#111827;font-size:26px;margin:0 0 4px;">Shop ${shopName}</h1>
+                    <p style="color:#6B7280;font-size:14px;margin:0 0 24px;">Scan QR Code to connect with our shop</p>
+                    <div style="background:#F9FAFB;border-radius:16px;padding:24px;display:inline-block;">
+                        <img src="data:image/jpeg;base64,${base64Img}" style="width:220px;height:220px;" />
+                    </div>
+                    <div style="margin-top:20px;background:#F3F4F6;border-radius:10px;padding:10px 20px;display:inline-block;">
+                        <span style="color:#9CA3AF;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Shop Code</span><br/>
+                        <span style="color:#111827;font-size:20px;font-weight:bold;letter-spacing:3px;">${shopCode}</span>
+                    </div>
+                    <p style="color:#D1D5DB;font-size:11px;margin-top:24px;">Powered by <strong style="color:#9CA3AF;">ShopMunim</strong></p>
+                </div>
+            </body></html>`;
+
+            const { uri: pdfUri } = await Print.printToFileAsync({ html });
+
+            // Read PDF as base64
+            const pdfBase64 = await LegacyFileSystem.readAsStringAsync(pdfUri, {
+                encoding: LegacyFileSystem.EncodingType.Base64,
+            });
+
+            // Save directly to Downloads folder
+            const permissions = await LegacyFileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+            if (permissions.granted) {
+                const fileName = `QR_Shop_${shopName.replace(/\s+/g, '_')}.pdf`;
+                const newFileUri = await LegacyFileSystem.StorageAccessFramework.createFileAsync(
+                    permissions.directoryUri,
+                    fileName,
+                    'application/pdf'
+                );
+                await LegacyFileSystem.writeAsStringAsync(newFileUri, pdfBase64, {
+                    encoding: LegacyFileSystem.EncodingType.Base64,
+                });
+                showToast('✓ QR Code PDF downloaded!');
+            }
+        } catch (error) {
+            console.log('Download error:', error);
+            showToast('Download failed: ' + (error?.message || String(error)));
+        }
+    };
+
+    const handlePrintQr = async () => {
+        try {
+            if (!viewShotRef.current) {
+                showToast('QR code not ready');
+                return;
+            }
+            const uri = await viewShotRef.current.capture();
+            if (!uri) {
+                showToast('Failed to capture QR code');
+                return;
+            }
+            const base64 = await LegacyFileSystem.readAsStringAsync(uri, {
+                encoding: LegacyFileSystem.EncodingType.Base64,
+            });
+            const currentShop = shops.find(s => s.id === user?.shop_id) || shops[0];
+            const shopName = currentShop?.name || 'Shop';
+            const shopCode = currentShop?.shop_code || '';
+
+            const html = `<html><head><meta charset="UTF-8"></head>
+            <body style="margin:0;padding:60px 40px;font-family:sans-serif;text-align:center;">
+                <div style="max-width:400px;margin:0 auto;border:2px solid #E5E7EB;border-radius:20px;padding:40px 30px;">
+                    <h1 style="color:#111827;font-size:26px;margin:0 0 4px;">Shop ${shopName}</h1>
+                    <p style="color:#6B7280;font-size:14px;margin:0 0 24px;">Scan QR Code to connect with our shop</p>
+                    <div style="background:#F9FAFB;border-radius:16px;padding:24px;display:inline-block;">
+                        <img src="data:image/jpeg;base64,${base64}" style="width:220px;height:220px;" />
+                    </div>
+                    <div style="margin-top:20px;background:#F3F4F6;border-radius:10px;padding:10px 20px;display:inline-block;">
+                        <span style="color:#9CA3AF;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Shop Code</span><br/>
+                        <span style="color:#111827;font-size:20px;font-weight:bold;letter-spacing:3px;">${shopCode}</span>
+                    </div>
+                    <p style="color:#D1D5DB;font-size:11px;margin-top:24px;">Powered by <strong style="color:#9CA3AF;">ShopMunim</strong></p>
+                </div>
+            </body></html>`;
+
+            await Print.printAsync({ html });
+        } catch (error) {
+            console.log('Print error:', error);
+            showToast('Print failed: ' + (error?.message || String(error)));
+        }
     };
 
     const copyToClipboard = async () => {
@@ -1381,7 +1480,7 @@ const ShopOwnerDashboardScreen = () => {
                                         <Ionicons name="download-outline" size={18} color="#374151" />
                                         <Text style={styles.qrActionText}>Download</Text>
                                     </TouchableOpacity>
-                                    <TouchableOpacity style={styles.qrActionButton} onPress={handleShareQr}>
+                                    <TouchableOpacity style={styles.qrActionButton} onPress={handlePrintQr}>
                                         <Ionicons name="print-outline" size={18} color="#374151" />
                                         <Text style={styles.qrActionText}>Print</Text>
                                     </TouchableOpacity>
