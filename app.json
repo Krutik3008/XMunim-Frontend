@@ -30,7 +30,24 @@
       "edgeToEdgeEnabled": true,
       "package": "com.krutik3011.ShopMunimApp",
       "softwareKeyboardLayoutMode": "pan",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "shopmunim-backend.onrender.com",
+              "pathPrefix": "/api/public/verify-customer"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
