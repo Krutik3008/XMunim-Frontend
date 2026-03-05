@@ -108,14 +108,25 @@ const AppNavigator = () => {
                     const response = await customerAPI.verifyCustomer(customerId);
                     if (response.data && response.data.success) {
                         if (Platform.OS === 'android') {
-                            ToastAndroid.show('Customer verified successfully', ToastAndroid.LONG);
+                            ToastAndroid.show('✓ Customer verified successfully', ToastAndroid.LONG);
                         } else {
                             Alert.alert('Success', 'Customer verified successfully');
+                        }
+                    } else {
+                        if (Platform.OS === 'android') {
+                            ToastAndroid.show('Verification failed. Please try again.', ToastAndroid.LONG);
+                        } else {
+                            Alert.alert('Error', 'Verification failed. Please try again.');
                         }
                     }
                 }
             } catch (error) {
                 console.error('Verification failed via deep link:', error);
+                if (Platform.OS === 'android') {
+                    ToastAndroid.show('Verification failed. Please try again.', ToastAndroid.LONG);
+                } else {
+                    Alert.alert('Error', 'Verification failed. Please try again.');
+                }
             }
         };
 
