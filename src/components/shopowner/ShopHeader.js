@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 
-const ShopHeader = ({ title, onSwitchError }) => {
+const ShopHeader = ({ title, shopName, onSwitchError }) => {
     const navigation = useNavigation();
     const { user, logout, switchRole } = useAuth();
     const [showRoleDropdown, setShowRoleDropdown] = useState(false);
@@ -59,7 +59,7 @@ const ShopHeader = ({ title, onSwitchError }) => {
                 </View>
             </View>
             <View style={styles.headerBottom}>
-                <Text style={styles.welcomeText}>Welcome, <Text style={styles.userName}>{user?.name || 'User'}</Text></Text>
+                <Text style={styles.welcomeText}>Welcome, <Text style={styles.shopName}> {shopName || 'Shop'}</Text></Text>
                 <View style={styles.phoneContainer}>
                     <Text style={styles.phoneText}>+91 {user?.phone}</Text>
                 </View>
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#666',
     },
-    userName: {
+    shopName: {
         fontWeight: 'bold',
         color: '#333',
     },

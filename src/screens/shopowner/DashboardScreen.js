@@ -1578,7 +1578,10 @@ const ShopOwnerDashboardScreen = () => {
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            <ShopHeader onSwitchError={(msg) => showToast(msg, 'error')} />
+            <ShopHeader
+                shopName={(shops.find(s => s.id === user?.shop_id) || shops[0])?.name}
+                onSwitchError={(msg) => showToast(msg, 'error')}
+            />
             <View style={styles.content}>{renderContent()}</View>
             {!isKeyboardVisible && (
                 <ShopBottomNav

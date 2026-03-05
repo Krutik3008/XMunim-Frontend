@@ -648,7 +648,7 @@ const CustomerDetailScreen = ({ route, navigation }) => {
                 </Modal>
 
                 {/* Header - Same as Dashboard */}
-                <ShopHeader />
+                <ShopHeader shopName={shopDetails?.name} />
 
                 <View style={styles.content}>
                     <ScrollView
