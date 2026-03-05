@@ -686,20 +686,18 @@ const ShopOwnerDashboardScreen = () => {
 
     const copyToClipboard = async () => {
         const currentShop = shops.find(s => s.id === user?.shop_id) || shops[0];
-        const shopName = currentShop?.name ? encodeURIComponent(currentShop.name.replace(/\s+/g, '')) : 'Shop';
         const shopCode = currentShop?.shop_code || 'Code';
 
-        const link = `https://shopmunim.com/connect/${shopName}/${shopCode}`;
+        const link = `https://shopmunim-backend.onrender.com/api/public/connect/${shopCode}`;
         await Clipboard.setStringAsync(link);
         showToast('Link copied to clipboard!');
     };
 
     const handleShareLink = async (type) => {
         const currentShop = shops.find(s => s.id === user?.shop_id) || shops[0];
-        const shopName = currentShop?.name ? encodeURIComponent(currentShop.name.replace(/\s+/g, '')) : 'Shop';
         const shopCode = currentShop?.shop_code || 'Code';
 
-        const link = `https://shopmunim.com/connect/${shopName}/${shopCode}`;
+        const link = `https://shopmunim-backend.onrender.com/api/public/connect/${shopCode}`;
         const message = `Check out my shop "${currentShop?.name || 'Shop'}" on ShopMunim! Code: ${shopCode}\nLink: ${link}`;
         try {
             if (type === 'whatsapp') {
@@ -1474,7 +1472,7 @@ const ShopOwnerDashboardScreen = () => {
                                 <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }}>
                                     <View style={styles.qrContainer}>
                                         <QRCode
-                                            value={`https://shopmunim.com/connect/${currentShop?.name ? encodeURIComponent(currentShop.name.replace(/\s+/g, '')) : 'Shop'}/${currentShop?.shop_code || 'Code'}`}
+                                            value={`https://shopmunim-backend.onrender.com/api/public/connect/${currentShop?.shop_code || 'Code'}`}
                                             size={200}
                                             backgroundColor="white"
                                             color="black"
@@ -1507,7 +1505,7 @@ const ShopOwnerDashboardScreen = () => {
                                 <View style={styles.linkBox}>
                                     <Ionicons name="link-outline" size={20} color="#6B7280" />
                                     <Text style={styles.linkText} numberOfLines={1} ellipsizeMode="tail">
-                                        https://shopmunim.com/connect/{currentShop?.name ? encodeURIComponent(currentShop.name.replace(/\s+/g, '')) : 'Shop'}/{currentShop?.shop_code || 'Code'}
+                                        https://shopmunim-backend.onrender.com/api/public/connect/{currentShop?.shop_code || 'Code'}
                                     </Text>
                                 </View>
 
