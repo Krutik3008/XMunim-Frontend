@@ -1,13 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
+import { authAPI } from '../../api';
 
 const ShopHeader = ({ title, shopName, onSwitchError }) => {
     const navigation = useNavigation();
     const { user, logout, switchRole } = useAuth();
     const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+    const [isAdminState, setIsAdminState] = useState(false);
+
+    // Check global state first
+    useEffect(() => {
+        setIsAdminState(user?.admin_roles && user.admin_roles.length > 0);
+    }, [user?.admin_roles]);
+
+    const handleRoleDropdownToggle = async () => {
+        const newValue = !showRoleDropdown;
+        setShowRoleDropdown(newValue);
+
+        // If opening the dropdown, do a quick check for admin status
+        if (newValue) {
+            try {
+                const response = await authAPI.getMe();
+                if (response.data) {
+                    setIsAdminState(response.data.admin_roles && response.data.admin_roles.length > 0);
+                }
+            } catch (e) {
+                console.log('Failed to check admin status:', e);
+            }
+        }
+    };
 
     const handleLogout = () => {
         Alert.alert(
@@ -47,7 +71,7 @@ const ShopHeader = ({ title, shopName, onSwitchError }) => {
                 <View style={styles.headerRight}>
                     <TouchableOpacity
                         style={styles.roleSelector}
-                        onPress={() => setShowRoleDropdown(!showRoleDropdown)}
+                        onPress={handleRoleDropdownToggle}
                     >
                         <Ionicons name="storefront" size={16} color="#8B5CF6" />
                         <Text style={styles.roleSelectorText}>Shop Owner</Text>
@@ -94,16 +118,18 @@ const ShopHeader = ({ title, shopName, onSwitchError }) => {
                                 <Ionicons name="checkmark" size={18} color="#8B5CF6" />
                             )}
                         </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.roleOption, user?.active_role === 'admin' && styles.roleOptionActive]}
-                            onPress={() => handleRoleSwitch('admin')}
-                        >
-                            <Ionicons name="shield" size={18} color="#F59E0B" />
-                            <Text style={styles.roleOptionText}>Admin</Text>
-                            {user?.active_role === 'admin' && (
-                                <Ionicons name="checkmark" size={18} color="#F59E0B" />
-                            )}
-                        </TouchableOpacity>
+                        {isAdminState && (
+                            <TouchableOpacity
+                                style={[styles.roleOption, user?.active_role === 'admin' && styles.roleOptionActive]}
+                                onPress={() => handleRoleSwitch('admin')}
+                            >
+                                <Ionicons name="shield" size={18} color="#F59E0B" />
+                                <Text style={styles.roleOptionText}>Admin</Text>
+                                {user?.active_role === 'admin' && (
+                                    <Ionicons name="checkmark" size={18} color="#F59E0B" />
+                                )}
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </>
             )}

@@ -1,5 +1,5 @@
 // Customer Header Component - Extracted from DashboardScreen
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -8,8 +8,32 @@ import {
     Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { authAPI } from '../../api';
 
 const CustomerHeader = ({ user, logout, showRoleDropdown, setShowRoleDropdown, handleRoleSwitch }) => {
+    const [isAdminState, setIsAdminState] = useState(false);
+
+    // Check global state first
+    useEffect(() => {
+        setIsAdminState(user?.admin_roles && user.admin_roles.length > 0);
+    }, [user?.admin_roles]);
+
+    const handleRoleDropdownToggle = async () => {
+        const newValue = !showRoleDropdown;
+        setShowRoleDropdown(newValue);
+
+        // If opening the dropdown, do a quick check for admin status
+        if (newValue) {
+            try {
+                const response = await authAPI.getMe();
+                if (response.data) {
+                    setIsAdminState(response.data.admin_roles && response.data.admin_roles.length > 0);
+                }
+            } catch (e) {
+                console.log('Failed to check admin status:', e);
+            }
+        }
+    };
     const handleLogout = () => {
         Alert.alert(
             'Logout',
@@ -28,7 +52,7 @@ const CustomerHeader = ({ user, logout, showRoleDropdown, setShowRoleDropdown, h
                 <View style={styles.headerRight}>
                     <TouchableOpacity
                         style={styles.roleSelector}
-                        onPress={() => setShowRoleDropdown(!showRoleDropdown)}
+                        onPress={handleRoleDropdownToggle}
                     >
                         <Ionicons name="person" size={16} color="#3B82F6" />
                         <Text style={styles.roleSelectorText}>Customer</Text>
@@ -72,13 +96,15 @@ const CustomerHeader = ({ user, logout, showRoleDropdown, setShowRoleDropdown, h
                             <Ionicons name="storefront" size={18} color="#8B5CF6" />
                             <Text style={styles.roleOptionText}>Shop Owner</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.roleOption, user?.active_role === 'admin' && styles.roleOptionActive]}
-                            onPress={() => handleRoleSwitch('admin')}
-                        >
-                            <Ionicons name="shield" size={18} color="#F59E0B" />
-                            <Text style={styles.roleOptionText}>Admin</Text>
-                        </TouchableOpacity>
+                        {isAdminState && (
+                            <TouchableOpacity
+                                style={[styles.roleOption, user?.active_role === 'admin' && styles.roleOptionActive]}
+                                onPress={() => handleRoleSwitch('admin')}
+                            >
+                                <Ionicons name="shield" size={18} color="#F59E0B" />
+                                <Text style={styles.roleOptionText}>Admin</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </>
             )}
