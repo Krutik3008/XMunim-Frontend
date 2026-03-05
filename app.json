@@ -2,6 +2,7 @@
   "expo": {
     "name": "ShopMunimApp",
     "slug": "ShopMunimApp",
+    "scheme": "shopmunim",
     "owner": "krutik3011",
     "version": "1.0.0",
     "orientation": "portrait",

@@ -3,8 +3,8 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Backend URL - Update this to your backend server IP
-// const BACKEND_URL = 'https://shopmunim-backend.onrender.com';
-const BACKEND_URL = 'http://192.168.29.145:8000';
+const BACKEND_URL = 'https://shopmunim-backend.onrender.com';
+// const BACKEND_URL = 'http://192.168.29.145:8000';
 const API_BASE = `${BACKEND_URL}/api`;
 
 // Create axios instance
@@ -151,6 +151,10 @@ export const customerAPI = {
     // Get notification history for a specific customer
     getCustomerNotifications: (shopId, customerId) =>
         api.get(`/shops/${shopId}/customers/${customerId}/notifications`),
+
+    // Explicitly verify customer (via deep link or browser)
+    verifyCustomer: (customerId) =>
+        api.post(`/public/verify-customer/${customerId}`),
 };
 
 // ============ PRODUCT APIs ============

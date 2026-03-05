@@ -1,10 +1,11 @@
 // App Navigator - Main navigation configuration with proper auth handling
 import React from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Linking, ToastAndroid, Platform, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme';
+import { customerAPI } from '../api';
 
 // Screens
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -81,6 +82,50 @@ const MainNavigator = ({ initialRoute }) => (
 // Root Navigator
 const AppNavigator = () => {
     const { isAuthenticated, user, loading } = useAuth();
+
+    React.useEffect(() => {
+        const handleDeepLink = (event) => {
+            let url = event.url;
+            if (url && url.includes('verify-customer')) {
+                showVerificationToast(url);
+            }
+        };
+
+        const checkInitialUrl = async () => {
+            const initialUrl = await Linking.getInitialURL();
+            if (initialUrl && initialUrl.includes('verify-customer')) {
+                showVerificationToast(initialUrl);
+            }
+        };
+
+        const showVerificationToast = async (url) => {
+            try {
+                // Extract customer_id from url: shopmunim://verify-customer/ID
+                const parts = url.split('/');
+                const customerId = parts[parts.length - 1];
+
+                if (customerId) {
+                    const response = await customerAPI.verifyCustomer(customerId);
+                    if (response.data && response.data.success) {
+                        if (Platform.OS === 'android') {
+                            ToastAndroid.show('Customer verified successfully', ToastAndroid.LONG);
+                        } else {
+                            Alert.alert('Success', 'Customer verified successfully');
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Verification failed via deep link:', error);
+            }
+        };
+
+        const linkingSubscription = Linking.addEventListener('url', handleDeepLink);
+        checkInitialUrl();
+
+        return () => {
+            linkingSubscription.remove();
+        };
+    }, []);
 
     console.log('AppNavigator render:', { isAuthenticated, userId: user?.id, loading });
 
