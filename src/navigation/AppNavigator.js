@@ -107,10 +107,11 @@ const AppNavigator = () => {
                 if (customerId) {
                     const response = await customerAPI.verifyCustomer(customerId);
                     if (response.data && response.data.success) {
+                        const shopName = response.data.shop_name || 'ShopMunim';
                         if (Platform.OS === 'android') {
-                            ToastAndroid.show('✓ Customer verified successfully', ToastAndroid.LONG);
+                            ToastAndroid.show(`✓ Customer successfully verified for Shop ${shopName}`, ToastAndroid.LONG);
                         } else {
-                            Alert.alert('Success', 'Customer verified successfully');
+                            Alert.alert('Success', `Customer successfully verified for Shop ${shopName}`);
                         }
                     } else {
                         if (Platform.OS === 'android') {
