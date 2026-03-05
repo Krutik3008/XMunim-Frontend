@@ -39,14 +39,18 @@ A full-featured mobile application for managing shop-customer relationships — 
 Shopmunim-Frontend/
 ├── src/
 │   ├── api/          # Axios instance & API endpoint definitions
+│   │   └── index.js  # Main API configuration & Interceptors
 │   ├── components/   # Reusable UI atoms (Buttons, Cards, Modals)
 │   ├── context/      # Global state (AuthContext, ThemeContext)
 │   ├── navigation/    # Role-based Tab & Stack configurations
 │   ├── screens/      # Feature-specific pages (Admin, Owner, Customer)
 │   ├── theme/        # Style tokens (Colors, Typography, Spacing)
-│   └── utils/        # Helper functions (Formatters, Validators)
+│   └── utils/        # Helper functions & Logic
+│       ├── helpers.js        # Data formatting & Validations
+│       └── downloadHelper.js # PDF & Excel generation logic
 ├── assets/           # Static images & fonts
 ├── app.json          # Expo configuration
+├── package.json      # Dependencies & Scripts
 └── eas.json          # Android/iOS build profiles
 ```
 
