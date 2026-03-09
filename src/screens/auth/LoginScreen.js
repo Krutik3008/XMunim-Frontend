@@ -351,11 +351,11 @@ const LoginScreen = ({ navigation }) => {
                             <View style={styles.form}>
                                 <Input
                                     label="Enter OTP"
-                                    placeholder="Enter 6-digit OTP"
+                                    placeholder="Enter 4-digit OTP"
                                     value={otp}
                                     onChangeText={handleOTPChange}
                                     keyboardType="number-pad"
-                                    maxLength={6}
+                                    maxLength={4}
                                     required
                                     style={styles.input}
                                 />
