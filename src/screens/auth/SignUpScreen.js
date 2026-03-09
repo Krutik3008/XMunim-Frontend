@@ -156,6 +156,13 @@ const SignUpScreen = ({ navigation }) => {
 
         setLoading(true);
         try {
+            // Check if user exists first
+            const checkResponse = await authAPI.checkPhone(phone);
+            if (checkResponse.data.exists) {
+                showToast('This number is already registered. Please login.', 'error');
+                return;
+            }
+
             console.log('Sending OTP via SDK to:', phone);
             // Format phone to MSG91 format (usually requires country code)
             const mobile = phone.length === 10 ? `91${phone}` : phone.replace('+', '');

@@ -78,6 +78,8 @@ export const authAPI = {
         return api.post('/auth/verify-sdk', data);
     },
 
+    checkPhone: (phone) => api.get(`/auth/check-phone/${phone}`),
+
     getMe: () => api.get('/auth/me'),
 
     switchRole: (role) => api.post('/auth/switch-role', { role }),
