@@ -28,14 +28,19 @@ const Button = ({
 
         if (variant === 'outline') {
             baseStyle.push(styles.outline);
-        } else if (variant === 'ghost') {
+        } else if (variant === 'ghost' || variant === 'link') {
             baseStyle.push(styles.ghost);
         } else if (variant === 'secondary') {
             baseStyle.push(styles.secondary);
         }
 
         if (isDisabled) {
-            baseStyle.push(styles.disabled);
+            // Only add background-based disabled style for non-transparent variants
+            if (variant !== 'ghost' && variant !== 'link') {
+                baseStyle.push(styles.disabled);
+            } else {
+                baseStyle.push(styles.disabledTransparent);
+            }
         }
 
         return baseStyle;
@@ -44,7 +49,7 @@ const Button = ({
     const getTextStyle = () => {
         const baseStyle = [styles.text, styles[`text_${size}`]];
 
-        if (variant === 'outline' || variant === 'ghost') {
+        if (variant === 'outline' || variant === 'ghost' || variant === 'link') {
             baseStyle.push(styles.textOutline);
         }
 
@@ -148,6 +153,10 @@ const styles = StyleSheet.create({
     },
     disabled: {
         backgroundColor: colors.gray[300],
+        opacity: 0.6,
+    },
+    disabledTransparent: {
+        backgroundColor: 'transparent',
         opacity: 0.6,
     },
     // Text styles
