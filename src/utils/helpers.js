@@ -59,7 +59,7 @@ export const isValidPhone = (phone) => {
  * @returns {boolean} Is valid
  */
 export const isValidOTP = (otp) => {
-    return /^[0-9]{6}$/.test(otp);
+    return /^[0-9]{4,6}$/.test(otp);
 };
 
 /**

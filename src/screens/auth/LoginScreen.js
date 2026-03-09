@@ -1,5 +1,6 @@
 // Login Screen with Phone + OTP authentication
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { OTPWidget } from '@msg91comm/sendotp-react-native';
 import {
     View,
     Text,
@@ -20,6 +21,25 @@ import { colors, spacing, borderRadius } from '../../theme';
 import { isValidPhone, isValidOTP } from '../../utils/helpers';
 import { useRef } from 'react';
 import { Animated } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const getOtpBlockInfo = async (phone) => {
+    try {
+        const str = await AsyncStorage.getItem("otpBlockInfo_" + phone);
+        if (!str) return {};
+        return JSON.parse(str);
+    } catch {
+        return {};
+    }
+};
+
+const setOtpBlockInfo = async (phone, info) => {
+    try {
+        await AsyncStorage.setItem("otpBlockInfo_" + phone, JSON.stringify(info));
+    } catch (e) {
+        console.error("Failed to save block info", e);
+    }
+};
 
 const LoginScreen = ({ navigation }) => {
     const { login, logoutToast, clearLogoutToast } = useAuth();
@@ -27,7 +47,15 @@ const LoginScreen = ({ navigation }) => {
     const [phone, setPhone] = useState('');
     const [name, setName] = useState('');
     const [otp, setOtp] = useState('');
+    const [reqId, setReqId] = useState(null);
     const [loading, setLoading] = useState(false);
+
+    // OTP Blocking / Timer State
+    const [counter, setCounter] = useState(0);
+    const [resendBlocked, setResendBlocked] = useState(false);
+    const [resendCount, setResendCount] = useState(0);
+    const [blockedUntil, setBlockedUntil] = useState(null);
+    const timerRef = useRef(null);
 
     // Toast notification state
     const [toastMessage, setToastMessage] = useState('');
@@ -35,6 +63,60 @@ const LoginScreen = ({ navigation }) => {
     const [toastType, setToastType] = useState('success');
     const toastAnim = useRef(new Animated.Value(0)).current;
     const toastTimer = useRef(null);
+
+    // Initialize block info on mount/phone change
+    useFocusEffect(
+        useCallback(() => {
+            const checkBlockInfo = async () => {
+                if (!phone || phone.length < 10) return;
+                const info = await getOtpBlockInfo(phone);
+                setResendCount(info.resendCount || 0);
+                setBlockedUntil(info.blockedUntil || null);
+                if (info.blockedUntil && Date.now() < info.blockedUntil) {
+                    setResendBlocked(true);
+                } else {
+                    setResendBlocked(false);
+                }
+            };
+            checkBlockInfo();
+        }, [phone])
+    );
+
+    // Timer for resend OTP
+    useEffect(() => {
+        if (resendBlocked || step !== 'otp') return;
+        timerRef.current = setInterval(() => {
+            setCounter((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timerRef.current);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(timerRef.current);
+    }, [resendCount, resendBlocked, step]);
+
+    // Handle block for 30min after attempts
+    useEffect(() => {
+        if (!blockedUntil) return;
+        if (Date.now() < blockedUntil) {
+            setResendBlocked(true);
+            const timeout = setTimeout(() => {
+                setResendBlocked(false);
+                setBlockedUntil(null);
+                setOtpBlockInfo(phone, {
+                    resendCount: 0,
+                    lastResend: null,
+                    blockedUntil: null,
+                });
+            }, blockedUntil - Date.now());
+            return () => clearTimeout(timeout);
+        } else {
+            setResendBlocked(false);
+            setBlockedUntil(null);
+        }
+    }, [blockedUntil, phone]);
 
     const showToast = (message, type = 'success') => {
         if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -72,16 +154,64 @@ const LoginScreen = ({ navigation }) => {
             return;
         }
 
+        if (resendBlocked) {
+            const timeLeft = blockedUntil ? Math.ceil((blockedUntil - Date.now()) / 60000) : 30;
+            showToast(`Too many attempts. Blocked for ${timeLeft} minutes.`, 'error');
+            return;
+        }
+
         setLoading(true);
         try {
-            console.log('Sending OTP to:', phone);
-            const response = await authAPI.sendOTP(phone, name, true);
-            console.log('OTP Response:', response.data);
+            console.log('Sending OTP via SDK to:', phone);
+            // Format phone to MSG91 format (usually requires country code)
+            const mobile = phone.length === 10 ? `91${phone}` : phone.replace('+', '');
+            const data = { identifier: mobile };
+
+            const response = await OTPWidget.sendOTP(data);
+            console.log('OTP SDK Response:', response);
+
+            if (response?.type === 'error') {
+                showToast(response?.message || 'Failed to send OTP', 'error');
+                return;
+            }
+
+            // MSG91 usually returns the request ID in `message` or `reqId` field
+            const returnedReqId = response?.message || response?.reqId;
+            setReqId(returnedReqId);
+
             showToast('OTP Sent Successfully');
+
+            // Handle fresh send vs resend
+            const info = await getOtpBlockInfo(phone) || {};
+            // If we are already on 'otp' step, it's a resend
+            let currentCount = step === 'otp' ? (info.resendCount || 0) + 1 : 0;
+
+            if (currentCount >= 3) {
+                const blockTime = Date.now() + 30 * 60 * 1000;
+                await setOtpBlockInfo(phone, {
+                    ...info,
+                    resendCount: currentCount,
+                    lastResend: Date.now(),
+                    blockedUntil: blockTime,
+                });
+                setResendBlocked(true);
+                setBlockedUntil(blockTime);
+                showToast("Maximum resend attempts reached. Try again after 30 minutes.", "error");
+            } else {
+                await setOtpBlockInfo(phone, {
+                    ...info,
+                    resendCount: currentCount,
+                    lastResend: Date.now(),
+                    blockedUntil: null,
+                });
+                setResendCount(currentCount);
+                setCounter(30); // Start 30s timer
+            }
+
             setStep('otp');
         } catch (error) {
-            console.log('OTP Error:', error.response?.data || error.message);
-            const errorDetail = error.response?.data?.detail || 'OTP Not Sent';
+            console.log('OTP Error:', error);
+            const errorDetail = error?.message || 'OTP Not Sent';
             showToast(errorDetail, 'error');
         } finally {
             setLoading(false);
@@ -91,16 +221,35 @@ const LoginScreen = ({ navigation }) => {
     const handleVerifyOTP = async () => {
         Keyboard.dismiss();
         if (!isValidOTP(otp)) {
-            showToast('Please enter a valid 6-digit OTP');
+            showToast('Please enter a valid OTP');
             return;
         }
 
         setLoading(true);
         try {
-            const response = await authAPI.verifyOTP(phone, otp, name || undefined);
-            await login(response.data.token, response.data.user);
+            if (!reqId) {
+                showToast('Session expired, please resend OTP', 'error');
+                return;
+            }
+            const body = { reqId: reqId, otp: otp };
+            const response = await OTPWidget.verifyOTP(body);
+            console.log('OTP Verify SDK Response:', response);
+
+            if (response?.type === 'error' && !response?.success) {
+                showToast(response?.message || 'Invalid OTP', 'error');
+                return;
+            }
+
+            // Clear blocks on success
+            await setOtpBlockInfo(phone, {});
+
+            // Now that MSG91 confirmed it, tell the backend to log the user in!
+            const backendResponse = await authAPI.verifySDK(phone, name || undefined, true);
+
+            await login(backendResponse.data.token, backendResponse.data.user);
         } catch (error) {
-            showToast(error.response?.data?.detail || 'Invalid OTP', 'error');
+            console.log('Verify OTP SDK Error:', error);
+            showToast(error?.message || error?.response?.data?.detail || 'Invalid OTP', 'error');
         } finally {
             setLoading(false);
         }
@@ -212,6 +361,30 @@ const LoginScreen = ({ navigation }) => {
                                     icon={<Ionicons name="checkmark-circle" size={16} color="#fff" />}
                                     style={styles.button}
                                 />
+                                <View style={styles.resendContainer}>
+                                    <Button
+                                        title={
+                                            resendBlocked
+                                                ? `Blocked: ${blockedUntil ? Math.ceil((blockedUntil - Date.now()) / 60000) : 0} min`
+                                                : counter > 0
+                                                    ? `Resend in ${counter}s`
+                                                    : "Resend OTP"
+                                        }
+                                        variant="link"
+                                        onPress={handleSendOTP}
+                                        disabled={counter > 0 || resendBlocked || loading}
+                                        textStyle={[
+                                            styles.resendText,
+                                            (counter > 0 || resendBlocked) && styles.resendTextDisabled
+                                        ]}
+                                        style={styles.resendButton}
+                                    />
+                                    {resendCount > 0 && !resendBlocked && (
+                                        <Text style={styles.resendAttemptsText}>
+                                            {resendCount}/3 attempts
+                                        </Text>
+                                    )}
+                                </View>
                                 <Button
                                     title="Back to Phone Number"
                                     variant="ghost"
@@ -411,6 +584,31 @@ const styles = StyleSheet.create({
         color: colors.primary.blue,
         fontWeight: 'bold',
         fontSize: 14,
+    },
+    resendContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 12,
+        paddingHorizontal: 8,
+    },
+    resendButton: {
+        minWidth: 0,
+        paddingHorizontal: 0,
+        paddingVertical: 0,
+        height: 'auto',
+    },
+    resendText: {
+        color: colors.primary.blue,
+        fontWeight: '600',
+        fontSize: 14,
+    },
+    resendTextDisabled: {
+        color: colors.gray[400],
+    },
+    resendAttemptsText: {
+        fontSize: 12,
+        color: colors.gray[500],
     },
     toastContainer: {
         position: 'absolute',
