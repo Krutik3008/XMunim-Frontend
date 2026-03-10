@@ -74,7 +74,7 @@ const ShopHeader = ({ title, shopName, onSwitchError }) => {
                         onPress={handleRoleDropdownToggle}
                     >
                         <Ionicons name="storefront" size={16} color="#8B5CF6" />
-                        <Text style={styles.roleSelectorText}>Shop Owner</Text>
+                        <Text style={styles.roleSelectorText}>Business</Text>
                         <Ionicons name="chevron-down" size={16} color="#666" />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={handleLogout}>
@@ -103,7 +103,7 @@ const ShopHeader = ({ title, shopName, onSwitchError }) => {
                             onPress={() => handleRoleSwitch('customer')}
                         >
                             <Ionicons name="person" size={18} color="#3B82F6" />
-                            <Text style={styles.roleOptionText}>Customer</Text>
+                            <Text style={styles.roleOptionText}>User</Text>
                             {user?.active_role === 'customer' && (
                                 <Ionicons name="checkmark" size={18} color="#3B82F6" />
                             )}
@@ -113,7 +113,7 @@ const ShopHeader = ({ title, shopName, onSwitchError }) => {
                             onPress={() => handleRoleSwitch('shop_owner')}
                         >
                             <Ionicons name="storefront" size={18} color="#8B5CF6" />
-                            <Text style={styles.roleOptionText}>Shop Owner</Text>
+                            <Text style={styles.roleOptionText}>Business</Text>
                             {user?.active_role === 'shop_owner' && (
                                 <Ionicons name="checkmark" size={18} color="#8B5CF6" />
                             )}

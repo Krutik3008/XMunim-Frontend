@@ -152,7 +152,7 @@ const AdminPanelScreen = () => {
         },
         {
             id: 'shops',
-            name: 'Shops',
+            name: 'Businesses',
             icon: 'storefront-outline',
             component: AdminShopManagement,
             Lib: Ionicons
@@ -192,7 +192,7 @@ const AdminPanelScreen = () => {
         if (role !== user?.active_role) {
             const result = await switchRole(role);
             if (result.success) {
-                const message = `Role switched to ${role === 'customer' ? 'Customer' : 'Shop Owner'}`;
+                const message = `Role switched to ${role === 'customer' ? 'User' : 'Business'}`;
                 if (role === 'customer') {
                     navigation.reset({ index: 0, routes: [{ name: 'CustomerDashboard', params: { successMessage: message } }] });
                 } else if (role === 'shop_owner') {
@@ -295,14 +295,14 @@ const AdminPanelScreen = () => {
                             onPress={() => handleRoleSwitch('customer')}
                         >
                             <Ionicons name="person-outline" size={18} color="#3B82F6" />
-                            <Text style={styles.roleOptionText}>Customer View</Text>
+                            <Text style={styles.roleOptionText}>User View</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[styles.roleOption, user?.active_role === 'shop_owner' && styles.roleOptionActive]}
                             onPress={() => handleRoleSwitch('shop_owner')}
                         >
                             <Ionicons name="storefront-outline" size={18} color="#8B5CF6" />
-                            <Text style={styles.roleOptionText}>Shop Owner View</Text>
+                            <Text style={styles.roleOptionText}>Business View</Text>
                         </TouchableOpacity>
                     </View>
                 </>

@@ -3,8 +3,8 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Backend URL - Update this to your backend server IP
-const BACKEND_URL = 'https://shopmunim-backend.onrender.com';
-// const BACKEND_URL = 'http://192.168.29.145:8000';
+// const BACKEND_URL = 'https://shopmunim-backend.onrender.com';
+const BACKEND_URL = 'http://192.168.29.145:8000';
 const API_BASE = `${BACKEND_URL}/api`;
 
 // Create axios instance
@@ -120,6 +120,12 @@ export const shopAPI = {
     // Connect customer to shop (public)
     connectToShop: (shopCode, customerData) =>
         api.post(`/shops/public/${shopCode}/connect`, customerData),
+};
+
+// ============ LOCATION APIs ============
+export const locationAPI = {
+    // Get location details by proxying through our robust python backend
+    getByPincode: (pincode) => api.get(`/location/pincode/${pincode}`),
 };
 
 // ============ CUSTOMER APIs (for shop owners) ============

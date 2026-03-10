@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { shopAPI } from '../../api';
+import { shopAPI, locationAPI } from '../../api';
 
 const SHOP_CATEGORIES = [
     'Grocery',
@@ -101,8 +101,9 @@ const CreateShopScreen = ({ navigation, route }) => {
         if (pin.length !== 6) return;
         setIsLoadingPincode(true);
         try {
-            const response = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
-            const data = await response.json();
+            // Fetch from our own python backend to bypass MSG91 Network Interceptors
+            const response = await locationAPI.getByPincode(pin);
+            const data = response.data;
 
             if (data && data[0].Status === 'Success') {
                 const postOffice = data[0].PostOffice;
@@ -119,11 +120,13 @@ const CreateShopScreen = ({ navigation, route }) => {
                 }
             } else {
                 if (!preserveArea) showToast('Invalid Pincode');
-                setCity('');
-                setState('');
-                setCountry('');
-                setAvailableAreas([]);
-                if (!preserveArea) setArea('');
+                if (!preserveArea) {
+                    setCity('');
+                    setState('');
+                    setCountry('');
+                    setAvailableAreas([]);
+                    setArea('');
+                }
             }
         } catch (error) {
             console.error('Error fetching pincode details:', error);
@@ -146,7 +149,8 @@ const CreateShopScreen = ({ navigation, route }) => {
 
         if (numericText.length === 6) {
             fetchLocationDetails(numericText);
-        } else {
+        } else if (numericText.length < 6 && pincode.length === 6) {
+            // Only clear if we actually had a valid pincode before
             setCity('');
             setState('');
             setCountry('');

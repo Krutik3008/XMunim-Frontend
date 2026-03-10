@@ -55,7 +55,7 @@ const CustomerHeader = ({ user, logout, showRoleDropdown, setShowRoleDropdown, h
                         onPress={handleRoleDropdownToggle}
                     >
                         <Ionicons name="person" size={16} color="#3B82F6" />
-                        <Text style={styles.roleSelectorText}>Customer</Text>
+                        <Text style={styles.roleSelectorText}>User</Text>
                         <Ionicons name="chevron-down" size={16} color="#666" />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={handleLogout}>
@@ -84,7 +84,7 @@ const CustomerHeader = ({ user, logout, showRoleDropdown, setShowRoleDropdown, h
                             onPress={() => handleRoleSwitch('customer')}
                         >
                             <Ionicons name="person" size={18} color="#3B82F6" />
-                            <Text style={styles.roleOptionText}>Customer</Text>
+                            <Text style={styles.roleOptionText}>User</Text>
                             {user?.active_role === 'customer' && (
                                 <Ionicons name="checkmark" size={18} color="#3B82F6" />
                             )}
@@ -94,7 +94,7 @@ const CustomerHeader = ({ user, logout, showRoleDropdown, setShowRoleDropdown, h
                             onPress={() => handleRoleSwitch('shop_owner')}
                         >
                             <Ionicons name="storefront" size={18} color="#8B5CF6" />
-                            <Text style={styles.roleOptionText}>Shop Owner</Text>
+                            <Text style={styles.roleOptionText}>Business</Text>
                         </TouchableOpacity>
                         {isAdminState && (
                             <TouchableOpacity
