@@ -150,7 +150,7 @@ const AdminShopManagement = ({ showToast }) => {
                 <View style={styles.cardContent}>
                     {/* Shop Code */}
                     <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Shop Code</Text>
+                        <Text style={styles.infoLabel}>Business Code</Text>
                         <View style={styles.codeBadge}>
                             <Text style={styles.codeText}>{item.shop_code}</Text>
                         </View>
@@ -244,15 +244,15 @@ const AdminShopManagement = ({ showToast }) => {
             >
                 {/* Header Text */}
                 <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Shop Management</Text>
-                    <Text style={styles.headerSubtitle}>Manage and verify shops</Text>
+                    <Text style={styles.headerTitle}>Business Management</Text>
+                    <Text style={styles.headerSubtitle}>Manage and verify businesses</Text>
                 </View>
 
                 {/* Search Card */}
                 <View style={styles.searchCard}>
                     <View style={styles.cardHeaderTitleRow}>
                         <Ionicons name="storefront" size={20} color="#000" />
-                        <Text style={styles.cardHeaderTitle}>Shops ({totalShops})</Text>
+                        <Text style={styles.cardHeaderTitle}>Businesses ({totalShops})</Text>
                     </View>
 
                     <View style={styles.searchRow}>
@@ -307,7 +307,7 @@ const AdminShopManagement = ({ showToast }) => {
                     </View>
                 ) : shops.length === 0 ? (
                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>No shops found</Text>
+                        <Text style={styles.emptyText}>No businesses found</Text>
                     </View>
                 ) : (
                     <View style={styles.listContent}>

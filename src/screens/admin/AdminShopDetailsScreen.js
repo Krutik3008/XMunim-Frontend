@@ -377,7 +377,7 @@ const AdminShopDetailsScreen = ({ shopId, shopName, shopCategory, shopCode, onBa
                                 <Ionicons name="arrow-back" size={24} color="#fff" />
                             </TouchableOpacity>
                             <View style={{ flex: 1 }}>
-                                <Text style={styles.headerTitle} numberOfLines={1}>{shopName || 'Shop Details'}'s Shop Customers</Text>
+                                <Text style={styles.headerTitle} numberOfLines={1}>{shopName || 'Shop Details'}'s Business Customers</Text>
                             </View>
                         </View>
 
