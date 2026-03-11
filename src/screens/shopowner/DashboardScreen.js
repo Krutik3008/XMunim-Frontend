@@ -172,6 +172,7 @@ const ShopOwnerDashboardScreen = () => {
     const [newCustomerName, setNewCustomerName] = useState('');
     const [newCustomerPhone, setNewCustomerPhone] = useState('');
     const [newCustomerNickname, setNewCustomerNickname] = useState('');
+    const [newCustomerType, setNewCustomerType] = useState('customer');
     const [addingCustomer, setAddingCustomer] = useState(false);
 
     // Add Transaction State
@@ -439,7 +440,8 @@ const ShopOwnerDashboardScreen = () => {
             const res = await customerAPI.create(shopId, {
                 name: savedName,
                 phone: savedPhone,
-                nickname: newCustomerNickname.trim() || null
+                nickname: newCustomerNickname.trim() || null,
+                type: newCustomerType
             });
 
             const newlyCreatedCustomerId = res.data?.id;
@@ -451,6 +453,7 @@ const ShopOwnerDashboardScreen = () => {
             setNewCustomerName('');
             setNewCustomerPhone('');
             setNewCustomerNickname('');
+            setNewCustomerType('customer');
 
             loadCustomers(shopId); // Refresh list
             loadDashboardStats(shopId); // Refresh home stats
@@ -892,6 +895,7 @@ const ShopOwnerDashboardScreen = () => {
                             setNewCustomerName('');
                             setNewCustomerPhone('');
                             setNewCustomerNickname('');
+                            setNewCustomerType('customer');
                             setShowAddCustomerModal(true);
                         }}
                     >
@@ -1106,6 +1110,7 @@ const ShopOwnerDashboardScreen = () => {
                                 setNewCustomerName('');
                                 setNewCustomerPhone('');
                                 setNewCustomerNickname('');
+                                setNewCustomerType('customer');
                                 setShowAddCustomerModal(true);
                             }}
                         >
@@ -1706,14 +1711,14 @@ const ShopOwnerDashboardScreen = () => {
             <Modal
                 visible={showAddCustomerModal}
                 onClose={() => setShowAddCustomerModal(false)}
-                title="Add New Customer"
+                title="Add New User"
                 toast={toastVisible && showAddCustomerModal ? renderToast() : null}
             >
                 <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Customer Name <Text style={styles.required}>*</Text></Text>
+                    <Text style={styles.inputLabel}>User Name <Text style={styles.required}>*</Text></Text>
                     <TextInput
                         style={styles.textInput}
-                        placeholder="Enter customer name"
+                        placeholder="Enter user name"
                         placeholderTextColor="#9CA3AF"
                         value={newCustomerName}
                         onChangeText={setNewCustomerName}
@@ -1731,6 +1736,23 @@ const ShopOwnerDashboardScreen = () => {
                         onChangeText={(text) => setNewCustomerPhone(text.replace(/[^0-9]/g, '').slice(0, 10))}
                         keyboardType="numeric"
                     />
+                </View>
+
+                <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Type <Text style={styles.required}>*</Text></Text>
+                    <View style={styles.typeToggle}>
+                        {['customer', 'staff', 'services'].map((t) => (
+                            <TouchableOpacity
+                                key={t}
+                                style={[styles.typeOption, newCustomerType === t && styles.typeOptionActive]}
+                                onPress={() => setNewCustomerType(t)}
+                            >
+                                <Text style={[styles.typeOptionText, newCustomerType === t && styles.typeOptionTextActive]}>
+                                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
                 </View>
 
                 <View style={styles.inputGroup}>
@@ -1753,7 +1775,7 @@ const ShopOwnerDashboardScreen = () => {
                     {addingCustomer ? (
                         <ActivityIndicator color="#fff" />
                     ) : (
-                        <Text style={styles.submitButtonText}>Add Customer</Text>
+                        <Text style={styles.submitButtonText}>Add</Text>
                     )}
                 </TouchableOpacity>
             </Modal>
@@ -2372,6 +2394,37 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         color: '#111827',
         marginBottom: 8,
+    },
+    typeToggle: {
+        flexDirection: 'row',
+        backgroundColor: '#F3F4F6',
+        borderRadius: 8,
+        padding: 4,
+        marginBottom: 8,
+    },
+    typeOption: {
+        flex: 1,
+        paddingVertical: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 6,
+    },
+    typeOptionActive: {
+        backgroundColor: '#ffffff',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    typeOptionText: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#6B7280',
+    },
+    typeOptionTextActive: {
+        color: '#2563EB',
+        fontWeight: '600',
     },
     required: {
         color: '#EF4444',
