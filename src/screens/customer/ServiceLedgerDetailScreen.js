@@ -64,7 +64,17 @@ const ServiceLedgerDetailScreen = () => {
 
     const handleRoleSwitch = async (role) => {
         setShowRoleDropdown(false);
-        // Role switching logic is usually handled in DashboardScreen or Header
+        if (role !== user?.active_role) {
+            const success = await switchRole(role);
+            if (success) {
+                const message = `Role switched to ${role === 'shop_owner' ? 'Business Owner' : 'Admin'}`;
+                if (role === 'shop_owner') {
+                    navigation.reset({ index: 0, routes: [{ name: 'ShopOwnerDashboard', params: { successMessage: message } }] });
+                } else if (role === 'admin') {
+                    navigation.reset({ index: 0, routes: [{ name: 'AdminPanel', params: { successMessage: message } }] });
+                }
+            }
+        }
     };
 
     const renderCalendar = () => {
