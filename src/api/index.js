@@ -141,6 +141,10 @@ export const customerAPI = {
     update: (shopId, customerId, data) =>
         api.put(`/shops/${shopId}/customers/${customerId}`, data),
 
+    // Update service/staff calendar data and rate
+    updateServiceData: (shopId, customerId, data) =>
+        api.put(`/shops/${shopId}/customers/${customerId}/service_data`, data),
+
     // Get customer transactions (via shop transactions filtered by customer)
     getTransactions: (shopId, customerId) =>
         api.get(`/shops/${shopId}/transactions`).then(response => ({

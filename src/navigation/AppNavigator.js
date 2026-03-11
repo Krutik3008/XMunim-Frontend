@@ -17,6 +17,7 @@ import ProductsScreen from '../screens/shopowner/ProductsScreen';
 import QRCodeScreen from '../screens/shopowner/QRCodeScreen';
 import QRShareScreen from '../screens/shopowner/QRShareScreen';
 import CustomerDashboardScreen from '../screens/customer/DashboardScreen';
+import ServiceLedgerDetailScreen from '../screens/customer/ServiceLedgerDetailScreen';
 import EditProfileScreen from '../screens/customer/account/EditProfileScreen';
 import NotificationsScreen from '../screens/customer/account/NotificationsScreen';
 import PrivacySecurityScreen from '../screens/customer/account/PrivacySecurityScreen';
@@ -65,6 +66,7 @@ const MainNavigator = ({ initialRoute }) => (
 
         {/* Customer Dashboard - Has its own built-in bottom tabs */}
         <Stack.Screen name="CustomerDashboard" component={CustomerDashboardScreen} />
+        <Stack.Screen name="ServiceLedgerDetail" component={ServiceLedgerDetailScreen} />
 
         {/* Customer Account Screens */}
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />

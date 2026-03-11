@@ -1131,10 +1131,100 @@ const CustomerDashboardScreen = () => {
         );
     };
 
+    // Services Tab Content (New)
+    const ServicesContent = () => {
+        const servicesData = ledgerData.filter(item =>
+            item.customer?.type === 'services' || item.customer?.type === 'staff'
+        );
+
+        return (
+            <ScrollView
+                style={styles.tabContent}
+                contentContainerStyle={{ paddingBottom: 100 }}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            >
+                {loading ? (
+                    <View style={styles.ledgerList}>
+                        {[1, 2].map(i => (
+                            <View key={i} style={[styles.ledgerItemContainer, { padding: 16 }]}>
+                                <Skeleton width="60%" height={18} style={{ marginBottom: 8 }} />
+                                <Skeleton width="40%" height={12} style={{ marginBottom: 12 }} />
+                                <View style={{ flexDirection: 'row', gap: 8 }}>
+                                    <Skeleton width={80} height={24} borderRadius={12} />
+                                    <Skeleton width={80} height={24} borderRadius={12} />
+                                </View>
+                            </View>
+                        ))}
+                    </View>
+                ) : servicesData.length === 0 ? (
+                    <View style={styles.emptyCard}>
+                        <Text style={styles.emptyTitle}>No Services Active</Text>
+                        <Text style={styles.emptyDescription}>
+                            You are not currently enrolled in any{'\n'}services or staff attendance programs.
+                        </Text>
+                        <View style={styles.chartIconContainer}>
+                            <Ionicons name="calendar-outline" size={80} color="#E5E7EB" />
+                        </View>
+                    </View>
+                ) : (
+                    <View style={styles.ledgerList}>
+                        {servicesData.map((item, index) => (
+                            <TouchableOpacity
+                                key={index}
+                                style={styles.ledgerItemContainer}
+                                onPress={() => navigation.navigate('ServiceLedgerDetail', {
+                                    customer: item.customer,
+                                    shopId: item.shop?.id,
+                                    shopDetails: item.shop
+                                })}
+                            >
+                                <View style={styles.ledgerItemHeader}>
+                                    <View style={styles.ledgerInfo}>
+                                        <Text style={styles.shopName}>{item.shop?.name}</Text>
+                                        <Text style={styles.shopLocation}>{item.shop?.location}</Text>
+
+                                        <View style={{ flexDirection: 'row', marginTop: 8, gap: 8 }}>
+                                            <View style={[styles.statusBadge, { backgroundColor: '#F3F4F6' }]}>
+                                                <Text style={[styles.statusBadgeText, { color: '#4B5563' }]}>
+                                                    {item.customer?.type === 'staff' ? 'Staff' : 'Service'}
+                                                </Text>
+                                            </View>
+                                            <View style={[styles.statusBadge, { backgroundColor: '#EBF5FF' }]}>
+                                                <Text style={[styles.statusBadgeText, { color: '#3B82F6' }]}>
+                                                    {item.customer?.service_rate_type === 'hourly' ? 'Hourly' : 'Daily'}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.ledgerArrow}
+                                        activeOpacity={0.7}
+                                        onPress={() => navigation.navigate('ServiceLedgerDetail', {
+                                            customer: item.customer,
+                                            shopId: item.shop?.id,
+                                            shopDetails: item.shop
+                                        })}
+                                    >
+                                        <Ionicons
+                                            name="arrow-forward"
+                                            size={18}
+                                            color="#FFF"
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
+            </ScrollView>
+        );
+    };
+
     // Render active tab content
     const renderContent = () => {
         switch (activeTab) {
             case 'ledger': return <LedgerContent />;
+            case 'services': return <ServicesContent />;
             case 'payments': return <PaymentsContent />;
             case 'history': return HistoryContent();
             case 'account': return <AccountContent />;

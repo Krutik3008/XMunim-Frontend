@@ -36,6 +36,7 @@ const CustomerBottomNav = ({ activeTab, setActiveTab }) => {
     return (
         <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 10), height: 65 + Math.max(insets.bottom, 10) }]}>
             <TabButton name="ledger" icon="book-outline" label="Ledger" activeTab={activeTab} setActiveTab={setActiveTab} />
+            <TabButton name="services" icon="calendar-outline" label="Services" activeTab={activeTab} setActiveTab={setActiveTab} />
             <TabButton name="payments" icon="card-outline" label="Payments" activeTab={activeTab} setActiveTab={setActiveTab} />
             <TabButton name="history" icon="time-outline" label="History" activeTab={activeTab} setActiveTab={setActiveTab} />
             <TabButton name="account" icon="person-outline" label="Account" activeTab={activeTab} setActiveTab={setActiveTab} />
