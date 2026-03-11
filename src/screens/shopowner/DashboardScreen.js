@@ -248,7 +248,7 @@ const ShopOwnerDashboardScreen = () => {
         const currentShopId = user?.shop_id || (shops.length > 0 ? shops[0].id : null);
 
         if (currentShopId) {
-            if (activeTab === 'customers') {
+            if (activeTab === 'customers' || activeTab === 'services') {
                 loadCustomers(currentShopId, customers.length === 0);
             } else if (activeTab === 'products') {
                 loadProducts(currentShopId, products.length === 0);
@@ -900,7 +900,7 @@ const ShopOwnerDashboardScreen = () => {
                         }}
                     >
                         <Ionicons name="person-add-outline" size={20} color="#fff" />
-                        <Text style={styles.quickActionText}>Add Customer</Text>
+                        <Text style={styles.quickActionText}>Add </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.quickActionGreen}
@@ -1642,6 +1642,143 @@ const ShopOwnerDashboardScreen = () => {
 
 
 
+    // Services Tab Content (Filtering customers by type === 'services')
+    const renderServicesContent = () => {
+        const hasShops = shops.length > 0;
+
+        // Filter for services and by search query
+        const filteredServices = customers.filter(customer =>
+            customer && customer.type === 'services' && (
+                customer.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                customer.phone?.includes(searchQuery) ||
+                customer.nickname?.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+        );
+
+        if (!hasShops) {
+            return (
+                <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
+                    <EmptyStateCard />
+                    <View style={{ height: 100 }} />
+                </ScrollView>
+            );
+        }
+
+        if ((loading || loadingCustomers) && !refreshing) {
+            return (
+                <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabPadding}>
+                    <View style={styles.customersHeader}>
+                        <Skeleton width="40%" height={28} />
+                        <View style={styles.customersHeaderRight}>
+                            <Skeleton width={32} height={32} borderRadius={16} />
+                            <Skeleton width={80} height={36} borderRadius={6} />
+                        </View>
+                    </View>
+                    <Skeleton width="100%" height={44} borderRadius={8} style={{ marginBottom: 16 }} />
+                    <View style={styles.customersList}>
+                        {[1, 2, 3].map(i => (
+                            <View key={i} style={[styles.customerItem, { flexDirection: 'row', alignItems: 'center' }]}>
+                                <Skeleton width={40} height={40} borderRadius={20} style={{ marginRight: 12 }} />
+                                <View style={{ flex: 1 }}>
+                                    <Skeleton width="50%" height={16} style={{ marginBottom: 6 }} />
+                                    <Skeleton width="40%" height={14} style={{ marginBottom: 6 }} />
+                                </View>
+                                <Skeleton width={24} height={24} borderRadius={12} />
+                            </View>
+                        ))}
+                    </View>
+                </ScrollView>
+            );
+        }
+
+        return (
+            <ScrollView
+                style={styles.tabContent}
+                contentContainerStyle={styles.tabPadding}
+                // Refresh control is not strictly needed for this filter, but we can reuse the same pull-to-refresh
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            >
+                <View style={styles.customersHeader}>
+                    <Text style={styles.customersTitle}>Services</Text>
+                    <View style={styles.customersHeaderRight}>
+                        <View style={styles.countBadge}>
+                            <Text style={styles.countBadgeText}>{filteredServices.length}</Text>
+                        </View>
+                        <TouchableOpacity
+                            style={styles.addButtonBlue}
+                            onPress={() => {
+                                setNewCustomerName('');
+                                setNewCustomerPhone('');
+                                setNewCustomerNickname('');
+                                setNewCustomerType('services');
+                                setShowAddCustomerModal(true);
+                            }}
+                        >
+                            <Ionicons name="briefcase-outline" size={16} color="#fff" />
+                            <Text style={styles.addButtonText}>Add</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                {/* Search Bar */}
+                <View style={styles.searchBar}>
+                    <Ionicons name="search-outline" size={20} color="#9CA3AF" />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search services by name or phone..."
+                        placeholderTextColor="#9CA3AF"
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                </View>
+
+                {/* Empty State or List */}
+                {filteredServices.length === 0 && searchQuery ? (
+                    <View style={styles.customersEmptyState}>
+                        <Text style={styles.tabEmptyText}>No matching services found</Text>
+                    </View>
+                ) : filteredServices.length === 0 ? (
+                    <View style={styles.customersEmptyState}>
+                        <Ionicons name="briefcase" size={48} color="#6366F1" />
+                        <Text style={styles.tabEmptyText}>No services yet</Text>
+                        <Text style={styles.tabEmptySubtext}>Add your first service provider to get started</Text>
+                    </View>
+                ) : (
+                    <View style={styles.customersList}>
+                        {filteredServices.map((service) => (
+                            <View key={service.id} style={styles.customerItem}>
+                                <View style={[styles.customerAvatar, { backgroundColor: '#EEF2FF' }]}>
+                                    <Text style={[styles.customerAvatarText, { color: '#4F46E5' }]}>
+                                        {service.name?.charAt(0)?.toUpperCase()}
+                                    </Text>
+                                </View>
+                                <View style={styles.customerInfo}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <Text style={styles.customerName}>
+                                            {service.name}
+                                            {service.nickname ? ` (${service.nickname})` : ''}
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.customerPhone}>+91 {service.phone}</Text>
+                                </View>
+                                <View style={styles.customerRightSide}>
+                                    <TouchableOpacity
+                                        style={styles.arrowButton}
+                                        onPress={() => handleCustomerSelect(service)}
+                                    >
+                                        <Ionicons name="arrow-forward" size={16} color="#fff" />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        ))}
+                    </View>
+                )}
+                {/* Spacer for bottom nav */}
+                <View style={{ height: 110 }} />
+            </ScrollView>
+        );
+    };
+
     // Render active tab content
     const renderContent = () => {
         switch (activeTab) {
@@ -1649,6 +1786,7 @@ const ShopOwnerDashboardScreen = () => {
             case 'products': return renderProductsContent();
             case 'customers': return renderCustomersContent();
             case 'transactions': return renderTransactionsContent();
+            case 'services': return renderServicesContent();
             case 'account': return renderAccountContent();
             default: return renderHomeContent();
         }

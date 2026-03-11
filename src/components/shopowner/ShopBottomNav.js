@@ -62,6 +62,9 @@ const ShopBottomNav = ({ activeTab = 'home', onTabPress }) => {
                 // Navigate to the customers tab in Dashboard
                 navigation.navigate('ShopOwnerDashboard', { tab: 'customers' });
                 break;
+            case 'services':
+                navigation.navigate('ShopOwnerDashboard', { tab: 'services' }); // Services is a tab in Dashboard
+                break;
             case 'transactions':
                 navigation.navigate('ShopOwnerDashboard', { tab: 'transactions' }); // Transactions is a tab in Dashboard
                 break;
@@ -95,6 +98,13 @@ const ShopBottomNav = ({ activeTab = 'home', onTabPress }) => {
                 label="Customers"
                 isActive={activeTab === 'customers'}
                 onPress={() => handlePress('customers')}
+            />
+            <TabButton
+                name="services"
+                icon="briefcase-outline"
+                label="Services"
+                isActive={activeTab === 'services'}
+                onPress={() => handlePress('services')}
             />
             <TabButton
                 name="transactions"
