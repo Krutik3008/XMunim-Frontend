@@ -22,11 +22,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { shopAPI, locationAPI } from '../../api';
 
 const SHOP_CATEGORIES = [
-    'Grocery',
-    'Restaurant/Food',
-    'Electronics',
-    'Clothing',
-    'Medical/Pharmacy',
+    'Grocery / Kirana',
+    'Restaurant / Cafe / Food',
+    'Clothing & Apparel',
+    'Mobile & Electronics',
+    'Medical & Pharmacy',
+    'Hardware & Sanitary',
+    'Footwear',
+    'Salon & Beauty Parlour',
+    'Jewellery',
+    'Stationery & Book Store',
+    'Dairy & Sweets',
+    'Automobile / Garage',
     'Other'
 ];
 
@@ -235,7 +242,7 @@ const CreateShopScreen = ({ navigation, route }) => {
                         <View style={styles.modalContent}>
                             {/* Modal Header */}
                             <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>{editingShop ? 'Edit Shop' : 'Create New Shop'}</Text>
+                                <Text style={styles.modalTitle}>{editingShop ? 'Edit Business' : 'Create New Business'}</Text>
                                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
                                     <Ionicons name="close" size={24} color="#666" />
                                 </TouchableOpacity>
@@ -251,10 +258,10 @@ const CreateShopScreen = ({ navigation, route }) => {
                                 <Pressable style={{ flex: 1 }} onPress={() => { setShowCategoryDropdown(false); setShowAreaDropdown(false); }}>
                                     {/* Shop Name */}
                                     <View style={styles.inputGroup}>
-                                        <Text style={styles.label}>Shop Name <Text style={styles.required}>*</Text></Text>
+                                        <Text style={styles.label}>Business Name <Text style={styles.required}>*</Text></Text>
                                         <TextInput
                                             style={styles.textInput}
-                                            placeholder="Enter shop name"
+                                            placeholder="Enter business name"
                                             placeholderTextColor="#9CA3AF"
                                             value={shopName}
                                             onChangeText={setShopName}
@@ -285,18 +292,25 @@ const CreateShopScreen = ({ navigation, route }) => {
 
                                         {showCategoryDropdown && (
                                             <View style={styles.categoryList}>
-                                                {SHOP_CATEGORIES.map((cat, idx) => (
-                                                    <TouchableOpacity
-                                                        key={idx}
-                                                        style={styles.categoryItem}
-                                                        onPress={() => {
-                                                            setShopCategory(cat);
-                                                            setShowCategoryDropdown(false);
-                                                        }}
-                                                    >
-                                                        <Text style={styles.categoryItemText}>{cat}</Text>
-                                                    </TouchableOpacity>
-                                                ))}
+                                                <ScrollView 
+                                                    style={{ maxHeight: 250 }} 
+                                                    nestedScrollEnabled={true} 
+                                                    keyboardShouldPersistTaps="handled"
+                                                    contentContainerStyle={{ paddingBottom: 10 }}
+                                                >
+                                                    {SHOP_CATEGORIES.map((cat, idx) => (
+                                                        <TouchableOpacity
+                                                            key={idx}
+                                                            style={styles.categoryItem}
+                                                            onPress={() => {
+                                                                setShopCategory(cat);
+                                                                setShowCategoryDropdown(false);
+                                                            }}
+                                                        >
+                                                            <Text style={styles.categoryItemText}>{cat}</Text>
+                                                        </TouchableOpacity>
+                                                    ))}
+                                                </ScrollView>
                                             </View>
                                         )}
                                     </View>
@@ -306,7 +320,7 @@ const CreateShopScreen = ({ navigation, route }) => {
                                         <Text style={styles.label}>UPI ID (For Payments)</Text>
                                         <TextInput
                                             style={styles.textInput}
-                                            placeholder="e.g. shopname@okicici"
+                                            placeholder="e.g. businessname@okicici"
                                             placeholderTextColor="#9CA3AF"
                                             value={upiId}
                                             onChangeText={setUpiId}
@@ -314,7 +328,7 @@ const CreateShopScreen = ({ navigation, route }) => {
                                             autoCapitalize="none"
                                         />
                                         <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>
-                                            This will be used to generate payment links for customers.
+                                            This will be used to generate payment links for users.
                                         </Text>
                                     </View>
 
@@ -445,7 +459,7 @@ const CreateShopScreen = ({ navigation, route }) => {
                                         {creating ? (
                                             <ActivityIndicator color="#fff" />
                                         ) : (
-                                            <Text style={styles.buttonText}>{editingShop ? 'Update Shop' : 'Create Shop'}</Text>
+                                            <Text style={styles.buttonText}>{editingShop ? 'Update Business' : 'Create Business'}</Text>
                                         )}
                                     </TouchableOpacity>
                                 </Pressable>

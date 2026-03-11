@@ -726,7 +726,7 @@ const ShopOwnerDashboardScreen = () => {
             <Text style={styles.emptyTitle}>Welcome to ShopMunim!</Text>
             <Text style={styles.emptyDescription}>Create your first shop to get started</Text>
             <TouchableOpacity style={styles.createShopButton} onPress={() => navigation.navigate('CreateShop')}>
-                <Text style={styles.createShopText}>+ Create Your Shop</Text>
+                <Text style={styles.createShopText}>+ Create New Business</Text>
             </TouchableOpacity>
         </View>
     );
