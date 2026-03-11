@@ -1770,6 +1770,20 @@ const ShopOwnerDashboardScreen = () => {
                                         </Text>
                                     </View>
                                     <Text style={styles.customerPhone}>+91 {service.phone}</Text>
+                                    <View style={{ flexDirection: 'row', marginTop: 8, gap: 8 }}>
+                                        <View style={[styles.statusBadge, { backgroundColor: '#F3F4F6' }]}>
+                                            <Text style={[styles.statusBadgeText, { color: '#4B5563' }]}>
+                                                {service.type === 'staff' ? 'Staff' : 'Service'}
+                                            </Text>
+                                        </View>
+                                        {service.service_rate && (
+                                            <View style={[styles.statusBadge, { backgroundColor: '#EBF5FF' }]}>
+                                                <Text style={[styles.statusBadgeText, { color: '#3B82F6' }]}>
+                                                    {service.service_rate_type === 'hourly' ? 'Hourly' : 'Daily'}
+                                                </Text>
+                                            </View>
+                                        )}
+                                    </View>
                                 </View>
                                 <View style={styles.customerRightSide}>
                                     <TouchableOpacity
@@ -3811,6 +3825,17 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#075E54',
         marginLeft: 4,
+    },
+    statusBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 4,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    statusBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
     },
 });
 

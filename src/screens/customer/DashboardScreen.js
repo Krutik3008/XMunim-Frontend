@@ -1174,14 +1174,9 @@ const CustomerDashboardScreen = () => {
                 ) : (
                     <View style={styles.ledgerList}>
                         {servicesData.map((item, index) => (
-                            <TouchableOpacity
+                            <View
                                 key={index}
                                 style={styles.ledgerItemContainer}
-                                onPress={() => navigation.navigate('ServiceLedgerDetail', {
-                                    customer: item.customer,
-                                    shopId: item.shop?.id,
-                                    shopDetails: item.shop
-                                })}
                             >
                                 <View style={styles.ledgerItemHeader}>
                                     <View style={styles.ledgerInfo}>
@@ -1217,7 +1212,7 @@ const CustomerDashboardScreen = () => {
                                         />
                                     </TouchableOpacity>
                                 </View>
-                            </TouchableOpacity>
+                            </View>
                         ))}
                     </View>
                 )}
