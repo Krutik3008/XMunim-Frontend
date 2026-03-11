@@ -447,7 +447,7 @@ const ShopOwnerDashboardScreen = () => {
             const newlyCreatedCustomerId = res.data?.id;
 
             setShowAddCustomerModal(false);
-            showToast('Customer added successfully');
+            showToast('User added successfully');
 
             // Clear state
             setNewCustomerName('');
@@ -605,21 +605,21 @@ const ShopOwnerDashboardScreen = () => {
                 encoding: LegacyFileSystem.EncodingType.Base64,
             });
             const currentShop = shops.find(s => s.id === user?.shop_id) || shops[0];
-            const shopName = currentShop?.name || 'Shop';
+            const shopName = currentShop?.name || 'Business';
             const shopCode = currentShop?.shop_code || '';
             const shopCategory = currentShop?.category || '';
 
             const html = `<html><head><meta charset="UTF-8"></head>
             <body style="margin:0;padding:60px 40px;font-family:sans-serif;text-align:center;">
                 <div style="max-width:400px;margin:0 auto;border:2px solid #E5E7EB;border-radius:20px;padding:40px 30px;">
-                    <h1 style="color:#111827;font-size:26px;margin:0 0 4px;">Shop ${shopName}</h1>
+                    <h1 style="color:#111827;font-size:26px;margin:0 0 4px;">Business ${shopName}</h1>
                     ${shopCategory ? `<div style="margin:8px auto 16px;"><span style="background:#EEF2FF;color:#6366F1;font-size:12px;padding:4px 14px;border-radius:20px;">${shopCategory}</span></div>` : ''}
-                    <p style="color:#6B7280;font-size:14px;margin:0 0 24px;">Scan QR Code to connect with our shop</p>
+                    <p style="color:#6B7280;font-size:14px;margin:0 0 24px;">Scan QR Code to connect with our business</p>
                     <div style="background:#F9FAFB;border-radius:16px;padding:24px;display:inline-block;">
                         <img src="data:image/jpeg;base64,${base64Img}" style="width:220px;height:220px;" />
                     </div>
                     <div style="margin-top:20px;background:#F3F4F6;border-radius:10px;padding:10px 20px;display:inline-block;">
-                        <span style="color:#9CA3AF;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Shop Code</span><br/>
+                        <span style="color:#9CA3AF;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Business Code</span><br/>
                         <span style="color:#111827;font-size:20px;font-weight:bold;letter-spacing:3px;">${shopCode}</span>
                     </div>
                     <p style="color:#D1D5DB;font-size:11px;margin-top:24px;">Powered by <strong style="color:#9CA3AF;">ShopMunim</strong></p>
@@ -660,16 +660,16 @@ const ShopOwnerDashboardScreen = () => {
                 encoding: LegacyFileSystem.EncodingType.Base64,
             });
             const currentShop = shops.find(s => s.id === user?.shop_id) || shops[0];
-            const shopName = currentShop?.name || 'Shop';
+            const shopName = currentShop?.name || 'Business';
             const shopCode = currentShop?.shop_code || '';
             const shopCategory = currentShop?.category || '';
 
             const html = `<html><head><meta charset="UTF-8"></head>
             <body style="margin:0;padding:60px 40px;font-family:sans-serif;text-align:center;">
                 <div style="max-width:400px;margin:0 auto;border:2px solid #E5E7EB;border-radius:20px;padding:40px 30px;">
-                    <h1 style="color:#111827;font-size:26px;margin:0 0 4px;">Shop ${shopName}</h1>
+                    <h1 style="color:#111827;font-size:26px;margin:0 0 4px;">Business ${shopName}</h1>
                     ${shopCategory ? `<div style="margin:8px auto 16px;"><span style="background:#EEF2FF;color:#6366F1;font-size:12px;padding:4px 14px;border-radius:20px;">${shopCategory}</span></div>` : ''}
-                    <p style="color:#6B7280;font-size:14px;margin:0 0 24px;">Scan QR Code to connect with our shop</p>
+                    <p style="color:#6B7280;font-size:14px;margin:0 0 24px;">Scan QR Code to connect with our business</p>
                     <div style="background:#F9FAFB;border-radius:16px;padding:24px;display:inline-block;">
                         <img src="data:image/jpeg;base64,${base64}" style="width:220px;height:220px;" />
                     </div>
@@ -1042,9 +1042,11 @@ const ShopOwnerDashboardScreen = () => {
     const renderCustomersContent = () => {
         const hasShops = shops.length > 0;
 
-        // Filter customers based on search query
+        // Filter customers based on search query and type
         const filteredCustomers = customers.filter(customer =>
-            customer && (
+            customer && 
+            (!customer.type || customer.type === 'customer') && 
+            (
                 customer.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 customer.phone?.includes(searchQuery) ||
                 customer.nickname?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -1407,7 +1409,7 @@ const ShopOwnerDashboardScreen = () => {
                         </View>
 
                         <View style={styles.rightRoleBadge}>
-                            <Text style={styles.rightRoleBadgeText}>Shop Owner</Text>
+                            <Text style={styles.rightRoleBadgeText}>Business</Text>
                         </View>
                     </View>
                 </View>
@@ -1421,10 +1423,10 @@ const ShopOwnerDashboardScreen = () => {
                             <Ionicons name="storefront" size={24} color="#8B5CF6" />
                         </View>
                         <View style={styles.shareTitleContainer}>
-                            <Text style={styles.shareTitle}>Share Your Shop</Text>
+                            <Text style={styles.shareTitle}>Share Your Business</Text>
                             {!isShareExpanded && (
                                 <Text style={styles.shareSubtitle}>
-                                    Generate QR code and shareable link for customers to connect
+                                    Generate QR code and shareable link for users to connect
                                 </Text>
                             )}
                         </View>
@@ -1447,7 +1449,7 @@ const ShopOwnerDashboardScreen = () => {
                                 <View style={[styles.cardHeaderRow, { justifyContent: 'space-between' }]}>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                         <Ionicons name="qr-code-outline" size={20} color="#000" />
-                                        <Text style={styles.cardTitle}>Shop Info</Text>
+                                        <Text style={styles.cardTitle}>Business Info</Text>
                                     </View>
                                     <TouchableOpacity onPress={() => navigation.navigate('CreateShop', { shop: currentShop })}>
                                         <Ionicons name="create-outline" size={20} color="#4B5563" />
@@ -1473,7 +1475,7 @@ const ShopOwnerDashboardScreen = () => {
                             {/* Card 2: QR Code Card */}
                             <View style={styles.qrCodeCard}>
                                 <Text style={styles.qrCardTitle}>QR Code</Text>
-                                <Text style={styles.qrCardSubtitle}>Customers can scan this code to connect to your shop instantly</Text>
+                                <Text style={styles.qrCardSubtitle}>Users can scan this code to connect to your business instantly</Text>
 
                                 <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }}>
                                     <View style={styles.qrContainer}>
@@ -1499,7 +1501,7 @@ const ShopOwnerDashboardScreen = () => {
 
                                 <View style={styles.qrFooter}>
                                     <Text style={styles.qrFooterEmoji}>📱</Text>
-                                    <Text style={styles.qrFooterText}>Customers scan this with any QR scanner or camera app</Text>
+                                    <Text style={styles.qrFooterText}>Users scan this with any QR scanner or camera app</Text>
                                 </View>
                             </View>
 
@@ -1534,10 +1536,10 @@ const ShopOwnerDashboardScreen = () => {
                                 {/* Blue Info Box */}
                                 <View style={styles.infoBoxBlue}>
                                     <Text style={styles.infoBoxTitle}>✨ Benefits</Text>
-                                    <Text style={styles.infoBoxItem}>• Customers can see your shop & items</Text>
+                                    <Text style={styles.infoBoxItem}>• Users can see your business & items</Text>
                                     <Text style={styles.infoBoxItem}>• They join your list automatically</Text>
                                     <Text style={styles.infoBoxItem}>• Chat and request items/payments</Text>
-                                    <Text style={styles.infoBoxItem}>• No manual customer add required!</Text>
+                                    <Text style={styles.infoBoxItem}>• No manual user add required!</Text>
                                 </View>
                             </View>
 
@@ -1546,18 +1548,18 @@ const ShopOwnerDashboardScreen = () => {
                                 <Text style={styles.marketingTitle}>Marketing Tips</Text>
 
                                 <View style={[styles.marketingCard, { backgroundColor: '#FFFBEB' }]}>
-                                    <Text style={[styles.marketingCardTitle, { color: '#B45309' }]}>🏠 In Your Shop</Text>
-                                    <Text style={styles.marketingCardText}>Print the QR code and display it at your counter or entrance for easy customer registration.</Text>
+                                    <Text style={[styles.marketingCardTitle, { color: '#B45309' }]}>🏠 In Your Business</Text>
+                                    <Text style={styles.marketingCardText}>Print the QR code and display it at your counter or entrance for easy user registration.</Text>
                                 </View>
 
                                 <View style={[styles.marketingCard, { backgroundColor: '#ECFDF5' }]}>
                                     <Text style={[styles.marketingCardTitle, { color: '#047857' }]}>📱 Social Media</Text>
-                                    <Text style={styles.marketingCardText}>Share the link on WhatsApp status, Facebook, or Instagram to reach more customers.</Text>
+                                    <Text style={styles.marketingCardText}>Share the link on WhatsApp status, Facebook, or Instagram to reach more users.</Text>
                                 </View>
 
                                 <View style={[styles.marketingCard, { backgroundColor: '#EFF6FF' }]}>
                                     <Text style={[styles.marketingCardTitle, { color: '#1D4ED8' }]}>💳 Digital Payments</Text>
-                                    <Text style={styles.marketingCardText}>Include the link in your UPI payment confirmation SMS to connect customers.</Text>
+                                    <Text style={styles.marketingCardText}>Include the link in your UPI payment confirmation SMS to connect users.</Text>
                                 </View>
                             </View>
 
@@ -1574,7 +1576,7 @@ const ShopOwnerDashboardScreen = () => {
                         ) : (
                             // No Shop Found - Render text directly inside this card since header is already above
                             <View style={styles.noShopMessageContainer}>
-                                <Text style={styles.noShopMessageText}>No shops found. Create a shop first to generate QR code.</Text>
+                                <Text style={styles.noShopMessageText}>No Business found. Create a business first to generate QR code.</Text>
                             </View>
                         )
                     )}
@@ -1590,7 +1592,7 @@ const ShopOwnerDashboardScreen = () => {
 
                     <TouchableOpacity style={styles.settingItem} onPress={() => navigation.navigate('CreateShop', { shop: currentShop })}>
                         <Ionicons name="storefront-outline" size={22} color="#4B5563" style={{ marginRight: 12 }} />
-                        <Text style={styles.settingText}>Shop Info</Text>
+                        <Text style={styles.settingText}>Business Info</Text>
                         <Ionicons name="create-outline" size={18} color="#6B7280" />
                     </TouchableOpacity>
 
@@ -1640,15 +1642,23 @@ const ShopOwnerDashboardScreen = () => {
         navigation.navigate('CustomerDetail', { customer, shopId });
     };
 
+    // Handle service selection for detail view
+    const handleServiceSelect = (service) => {
+        const shopId = user?.shop_id || (shops.length > 0 ? shops[0].id : null);
+        navigation.navigate('ServiceDetail', { customer: service, shopId });
+    };
+
 
 
     // Services Tab Content (Filtering customers by type === 'services')
     const renderServicesContent = () => {
         const hasShops = shops.length > 0;
 
-        // Filter for services and by search query
+        // Filter for services/staff and by search query
         const filteredServices = customers.filter(customer =>
-            customer && customer.type === 'services' && (
+            customer && 
+            (customer.type === 'services' || customer.type === 'staff') && 
+            (
                 customer.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 customer.phone?.includes(searchQuery) ||
                 customer.nickname?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -1764,7 +1774,7 @@ const ShopOwnerDashboardScreen = () => {
                                 <View style={styles.customerRightSide}>
                                     <TouchableOpacity
                                         style={styles.arrowButton}
-                                        onPress={() => handleCustomerSelect(service)}
+                                        onPress={() => handleServiceSelect(service)}
                                     >
                                         <Ionicons name="arrow-forward" size={16} color="#fff" />
                                     </TouchableOpacity>

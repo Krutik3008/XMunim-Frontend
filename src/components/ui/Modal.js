@@ -100,7 +100,7 @@ const Modal = ({
                             style={styles.content}
                             showsVerticalScrollIndicator={false}
                             keyboardShouldPersistTaps={keyboardShouldPersistTaps}
-                            contentContainerStyle={{ paddingBottom: keyboardVisible ? 280 : 20 }}
+                            contentContainerStyle={{ paddingBottom: keyboardVisible ? 310 : 20 }}
                         >
                             {children}
                         </ScrollView>

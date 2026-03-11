@@ -1078,7 +1078,7 @@ const CustomerDashboardScreen = () => {
                         </View>
 
                         <View style={styles.rightRoleBadge}>
-                            <Text style={styles.rightRoleBadgeText}>Customer</Text>
+                            <Text style={styles.rightRoleBadgeText}>User</Text>
                         </View>
                     </View>
                 </View>
