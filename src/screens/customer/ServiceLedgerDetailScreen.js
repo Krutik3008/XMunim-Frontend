@@ -176,7 +176,7 @@ const ServiceLedgerDetailScreen = () => {
                     <View style={styles.card}>
                         <View style={styles.cardHeaderRow}>
                             <Ionicons name="storefront-outline" size={20} color="#111827" />
-                            <Text style={styles.cardTitle}>Shop Information</Text>
+                            <Text style={styles.cardTitle}>Business Information</Text>
                         </View>
                         <View style={styles.infoRow}>
                             <Text style={styles.label}>Name:</Text>

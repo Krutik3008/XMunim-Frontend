@@ -171,11 +171,12 @@ const CustomerDashboardScreen = () => {
 
     // Calculate summary stats
     const getSummaryStats = () => {
-        const totalShops = ledgerData.length;
+        const customerTypeData = ledgerData.filter(item => item.customer?.type === 'customer');
+        const totalShops = customerTypeData.length;
         let totalOwed = 0;
         let netBalance = 0;
 
-        ledgerData.forEach(item => {
+        customerTypeData.forEach(item => {
             const balance = item.customer?.balance || 0;
             if (balance < 0) {
                 totalOwed += Math.abs(balance);
@@ -486,7 +487,7 @@ const CustomerDashboardScreen = () => {
                 <View style={styles.statCard}>
                     <Text style={styles.statEmoji}>🏪</Text>
                     <Text style={styles.statValue}>{stats.totalShops}</Text>
-                    <Text style={styles.statLabel}>Shops</Text>
+                    <Text style={styles.statLabel}>Businesses</Text>
                 </View>
                 <View style={styles.statCard}>
                     <View style={[styles.rupeeCircle, !isOwed && { backgroundColor: '#F3F4F6' }]}>
@@ -539,109 +540,113 @@ const CustomerDashboardScreen = () => {
     );
 
     // Ledger Tab Content
-    const LedgerContent = () => (
-        <ScrollView
-            style={styles.tabContent}
-            contentContainerStyle={{ paddingBottom: 100 }}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        >
-            {loading ? (
-                <>
-                    <View style={styles.statsContainer}>
-                        {[1, 2, 3].map(i => (
-                            <View key={i} style={styles.statCard}>
-                                <Skeleton width={24} height={24} borderRadius={12} style={{ marginBottom: 8 }} />
-                                <Skeleton width="60%" height={24} style={{ marginBottom: 4 }} />
-                                <Skeleton width="40%" height={12} />
-                            </View>
-                        ))}
-                    </View>
-                    <View style={styles.ledgerList}>
-                        {[1, 2, 3].map(i => (
-                            <View key={i} style={[styles.ledgerItemContainer, { padding: 16 }]}>
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                                    <View style={{ flex: 1 }}>
-                                        <Skeleton width="60%" height={18} style={{ marginBottom: 8 }} />
-                                        <Skeleton width="40%" height={12} style={{ marginBottom: 12 }} />
-                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                            <Skeleton width={40} height={18} borderRadius={4} style={{ marginRight: 8 }} />
-                                            <Skeleton width={60} height={18} />
+    const LedgerContent = () => {
+        const customerTypeData = ledgerData.filter(item => item.customer?.type === 'customer');
+
+        return (
+            <ScrollView
+                style={styles.tabContent}
+                contentContainerStyle={{ paddingBottom: 100 }}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            >
+                {loading ? (
+                    <>
+                        <View style={styles.statsContainer}>
+                            {[1, 2, 3].map(i => (
+                                <View key={i} style={styles.statCard}>
+                                    <Skeleton width={24} height={24} borderRadius={12} style={{ marginBottom: 8 }} />
+                                    <Skeleton width="60%" height={24} style={{ marginBottom: 4 }} />
+                                    <Skeleton width="40%" height={12} />
+                                </View>
+                            ))}
+                        </View>
+                        <View style={styles.ledgerList}>
+                            {[1, 2, 3].map(i => (
+                                <View key={i} style={[styles.ledgerItemContainer, { padding: 16 }]}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                        <View style={{ flex: 1 }}>
+                                            <Skeleton width="60%" height={18} style={{ marginBottom: 8 }} />
+                                            <Skeleton width="40%" height={12} style={{ marginBottom: 12 }} />
+                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                <Skeleton width={40} height={18} borderRadius={4} style={{ marginRight: 8 }} />
+                                                <Skeleton width={60} height={18} />
+                                            </View>
                                         </View>
+                                        <Skeleton width={36} height={36} borderRadius={18} />
                                     </View>
-                                    <Skeleton width={36} height={36} borderRadius={18} />
                                 </View>
-                            </View>
-                        ))}
-                    </View>
-                </>
-            ) : ledgerData.length === 0 ? (
-                <LedgerEmptyState />
-            ) : (
-                <>
-                    <SummaryStatsCards />
-                    <View style={styles.ledgerList}>
-                        {ledgerData.map((item, index) => (
-                            <View key={index} style={styles.ledgerItemContainer}>
-                                <View style={styles.ledgerItemHeader}>
-                                    <View style={styles.ledgerInfo}>
-                                        <Text style={styles.shopName}>{item.shop?.name}</Text>
-                                        <Text style={styles.shopLocation}>{item.shop?.location}</Text>
+                            ))}
+                        </View>
+                    </>
+                ) : customerTypeData.length === 0 ? (
+                    <LedgerEmptyState />
+                ) : (
+                    <>
+                        <SummaryStatsCards />
+                        <View style={styles.ledgerList}>
+                            {customerTypeData.map((item, index) => (
+                                <View key={index} style={styles.ledgerItemContainer}>
+                                    <View style={styles.ledgerItemHeader}>
+                                        <View style={styles.ledgerInfo}>
+                                            <Text style={styles.shopName}>{item.shop?.name}</Text>
+                                            <Text style={styles.shopLocation}>{item.shop?.location}</Text>
 
-                                        {(() => {
-                                            const balance = item.customer?.balance || 0;
-                                            let badgeStyle = styles.badgeClear;
-                                            let textStyle = styles.badgeClearText;
-                                            let label = "Clear";
-                                            let amountColor = '#374151';
+                                            {(() => {
+                                                const balance = item.customer?.balance || 0;
+                                                let badgeStyle = styles.badgeClear;
+                                                let textStyle = styles.badgeClearText;
+                                                let label = "Clear";
+                                                let amountColor = '#374151';
 
-                                            if (balance < 0) {
-                                                badgeStyle = styles.badgeOwe;
-                                                textStyle = styles.badgeOweText;
-                                                label = "Dues";
-                                                amountColor = '#EF4444';
-                                            } else if (balance > 0) {
-                                                badgeStyle = styles.badgeCredit;
-                                                textStyle = styles.badgeCreditText;
-                                                label = "Credit";
-                                                amountColor = '#111827';
-                                            }
+                                                if (balance < 0) {
+                                                    badgeStyle = styles.badgeOwe;
+                                                    textStyle = styles.badgeOweText;
+                                                    label = "Dues";
+                                                    amountColor = '#EF4444';
+                                                } else if (balance > 0) {
+                                                    badgeStyle = styles.badgeCredit;
+                                                    textStyle = styles.badgeCreditText;
+                                                    label = "Credit";
+                                                    amountColor = '#111827';
+                                                }
 
-                                            return (
-                                                <View style={styles.ledgerBalanceRow}>
-                                                    <View style={[styles.statusBadge, badgeStyle]}>
-                                                        <Text style={[styles.statusBadgeText, textStyle]}>{label}</Text>
+                                                return (
+                                                    <View style={styles.ledgerBalanceRow}>
+                                                        <View style={[styles.statusBadge, badgeStyle]}>
+                                                            <Text style={[styles.statusBadgeText, textStyle]}>{label}</Text>
+                                                        </View>
+                                                        <Text style={[styles.ledgerBalanceAmount, { color: amountColor }]}>
+                                                            {balance < 0 ? '-' : ''}₹{Math.abs(balance).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                                                        </Text>
                                                     </View>
-                                                    <Text style={[styles.ledgerBalanceAmount, { color: amountColor }]}>
-                                                        {balance < 0 ? '-' : ''}₹{Math.abs(balance).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                                                    </Text>
-                                                </View>
-                                            );
-                                        })()}
+                                                );
+                                            })()}
+                                        </View>
+
+                                        <TouchableOpacity
+                                            style={styles.ledgerArrow}
+                                            activeOpacity={0.7}
+                                            onPress={() => setSelectedShopLedger(item)}
+                                        >
+                                            <Ionicons
+                                                name="arrow-forward"
+                                                size={18}
+                                                color="#FFF"
+                                            />
+                                        </TouchableOpacity>
                                     </View>
 
-                                    <TouchableOpacity
-                                        style={styles.ledgerArrow}
-                                        activeOpacity={0.7}
-                                        onPress={() => setSelectedShopLedger(item)}
-                                    >
-                                        <Ionicons
-                                            name="arrow-forward"
-                                            size={18}
-                                            color="#FFF"
-                                        />
-                                    </TouchableOpacity>
+
                                 </View>
-
-
-                            </View>
-                        ))}
-                    </View>
-                </>
-            )}
-            {/* Spacer for bottom nav */}
-            <View style={{ height: 50 }} />
-        </ScrollView>
-    );
+                            ))}
+                        </View>
+                    </>
+                )}
+                {/* Spacer for bottom nav */}
+                <View style={{ height: 50 }} />
+            </ScrollView>
+        );
+    };
 
     // UPI Payment Handler
     const handlePayNow = async (item) => {

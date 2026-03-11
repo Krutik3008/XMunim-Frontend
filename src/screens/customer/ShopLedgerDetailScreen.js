@@ -365,8 +365,8 @@ const ShopLedgerDetailScreen = ({
                 </div>
 
                 <div class="section">
-                    <div class="section-title"><span>🏪</span> Shop Information</div>
-                    <div class="info-row"><b>Shop Name:</b> ${shopDetails?.name || 'N/A'}</div>
+                    <div class="section-title"><span>🏪</span> Business Information</div>
+                    <div class="info-row"><b>Business Name:</b> ${shopDetails?.name || 'N/A'}</div>
                     <div class="info-row"><b>Location:</b> ${shopDetails?.location || 'N/A'}</div>
                 </div>
 
@@ -446,7 +446,7 @@ const ShopLedgerDetailScreen = ({
 
             const rows = [];
             rows.push(['My Transaction Report']);
-            rows.push([`Shop: ${shopDetails?.name || 'N/A'}`]);
+            rows.push([`Business: ${shopDetails?.name || 'N/A'}`]);
             rows.push([`Location: ${shopDetails?.location || 'N/A'}`]);
             rows.push([]);
             rows.push([`Customer: ${customer.name} (${customer.phone})`]);
@@ -545,7 +545,7 @@ const ShopLedgerDetailScreen = ({
                             <View style={styles.card}>
                                 <View style={styles.cardHeaderRow}>
                                     <Ionicons name="storefront-outline" size={20} color="#111827" />
-                                    <Text style={styles.cardTitle}>Shop Information</Text>
+                                    <Text style={styles.cardTitle}>Business Information</Text>
                                 </View>
 
                                 <View style={styles.infoRow}>
