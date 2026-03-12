@@ -368,7 +368,7 @@ const CustomerDashboardScreen = () => {
                     ${txRows}
                 </table>
                 <div class="footer">
-                    Report generated via ShopMunim App
+                    Report generated via XMunim App
                 </div>
             </body></html>`;
 
@@ -522,9 +522,9 @@ const CustomerDashboardScreen = () => {
     // Empty State Component for Ledger
     const LedgerEmptyState = () => (
         <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>Welcome to ShopMunim!</Text>
+            <Text style={styles.emptyTitle}>Welcome to XMunim!</Text>
             <Text style={styles.emptyDescription}>
-                No shop records found. Visit shops that use{'\n'}ShopMunim to see your ledger here.
+                No shop records found. Visit shops that use{'\n'}XMunim to see your ledger here.
             </Text>
             <View style={styles.chartIconContainer}>
                 <View style={styles.chartIcon}>
@@ -1115,7 +1115,7 @@ const CustomerDashboardScreen = () => {
 
                     <TouchableOpacity style={styles.settingItem} onPress={() => navigation.navigate('About')}>
                         <Ionicons name="information-circle-outline" size={22} color="#4B5563" style={{ marginRight: 12 }} />
-                        <Text style={styles.settingText}>About ShopMunim</Text>
+                        <Text style={styles.settingText}>About XMunim</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={[styles.settingItem, styles.settingItemLast]} onPress={handleLogout}>
@@ -1126,7 +1126,7 @@ const CustomerDashboardScreen = () => {
 
                 {/* Footer */}
                 <View style={styles.footer}>
-                    <Text style={styles.footerBrand}>ShopMunim</Text>
+                    <Text style={styles.footerBrand}>XMunim</Text>
                     <Text style={styles.footerVersion}>Version {Constants.expoConfig?.version || '1.0.0'}</Text>
                     <Text style={styles.footerTagline}>Digital Credit & Payment Ledger</Text>
                     <Text style={styles.footerCopyright}>©2026 DEC24 INNOVATIONS PVT LTD. All Rights Reserved.</Text>

@@ -279,7 +279,7 @@ const AddTransactionModal = ({ visible, onClose, shopId, onSuccess, preselectedC
             const link = response.data?.verification_link;
 
             if (link) {
-                const message = `Hello ${selectedCustomer.name},\n\nWelcome to Shop ${shopName}! We've added you to our digital ledger on ShopMunim.\n\nPlease click the link below to verify your number and activate your account:\n${link}\n\nThank you!`;
+                const message = `Hello ${selectedCustomer.name},\n\nWelcome to Shop ${shopName}! We've added you to our digital ledger on XMunim.\n\nPlease click the link below to verify your number and activate your account:\n${link}\n\nThank you!`;
                 const url = `whatsapp://send?phone=91${selectedCustomer.phone}&text=${encodeURIComponent(message)}`;
                 const canOpen = await Linking.canOpenURL(url);
                 if (canOpen) {

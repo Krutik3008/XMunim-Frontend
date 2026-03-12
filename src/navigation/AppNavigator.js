@@ -104,14 +104,14 @@ const AppNavigator = () => {
 
         const showVerificationToast = async (url) => {
             try {
-                // Extract customer_id from url: shopmunim://verify-customer/ID
+                // Extract customer_id from url: xmunim://verify-customer/ID
                 const parts = url.split('/');
                 const customerId = parts[parts.length - 1];
 
                 if (customerId) {
                     const response = await customerAPI.verifyCustomer(customerId);
                     if (response.data && response.data.success) {
-                        const shopName = response.data.shop_name || 'ShopMunim';
+                        const shopName = response.data.shop_name || 'XMunim';
                         if (Platform.OS === 'android') {
                             ToastAndroid.show(`✓ Customer successfully verified for Shop ${shopName}`, ToastAndroid.LONG);
                         } else {

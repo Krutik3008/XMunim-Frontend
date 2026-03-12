@@ -411,7 +411,7 @@ const ShopLedgerDetailScreen = ({
                     ${txRows}
                 </table>
 
-                <div class="footer">Report generated via ShopMunim App</div>
+                <div class="footer">Report generated via XMunim App</div>
             </body></html>`;
 
             const { uri } = await Print.printToFileAsync({ html });

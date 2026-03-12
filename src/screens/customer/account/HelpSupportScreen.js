@@ -14,11 +14,11 @@ const HelpSupportScreen = () => {
     const [expandedId, setExpandedId] = useState(null);
 
     const handleContactSupport = () => {
-        Linking.openURL('mailto:support@shopmunim.com');
+        Linking.openURL('mailto:support@xmunim.com');
     };
 
     const handleWhatsAppSupport = () => {
-        Linking.openURL('whatsapp://send?phone=+919876543210&text=Hi ShopMunim Support, I need help.');
+        Linking.openURL('whatsapp://send?phone=+919876543210&text=Hi XMunim Support, I need help.');
     };
 
     const toggleExpand = (id) => {
@@ -115,7 +115,7 @@ const HelpSupportScreen = () => {
                     <InfoRow
                         icon="mail-outline"
                         title="Email Support"
-                        subtitle="support@shopmunim.com"
+                        subtitle="support@xmunim.com"
                         onPress={handleContactSupport}
                         iconColor={colors.primary.blue}
                     />
@@ -141,7 +141,7 @@ const HelpSupportScreen = () => {
                         id="shops"
                         icon="business-outline"
                         title="Accessing multiple shops?"
-                        answer="Yes! ShopMunim is built for multiple shops. When any shop owner adds your phone number to their ledger, that shop will automatically appear in your 'Ledger' and 'Payments' tabs. No setup required."
+                        answer="Yes! XMunim is built for multiple shops. When any shop owner adds your phone number to their ledger, that shop will automatically appear in your 'Ledger' and 'Payments' tabs. No setup required."
                     />
                     <FAQRow
                         id="security"
@@ -153,7 +153,7 @@ const HelpSupportScreen = () => {
                 </View>
 
                 <View style={styles.footer}>
-                    <Text style={styles.versionText}>ShopMunim Production v{Constants.expoConfig?.version || '1.0.0'}</Text>
+                    <Text style={styles.versionText}>XMunim Production v{Constants.expoConfig?.version || '1.0.0'}</Text>
                     <View style={styles.secureConnection}>
                         <Ionicons name="shield-checkmark" size={12} color={colors.success} style={{ marginRight: 4 }} />
                         <Text style={styles.secureText}>Official Support Channel</Text>

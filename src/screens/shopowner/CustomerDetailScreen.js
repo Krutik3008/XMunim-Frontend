@@ -555,7 +555,7 @@ const CustomerDetailScreen = ({ route, navigation }) => {
 
             if (link) {
                 const shopName = shopDetails?.name || 'our store';
-                const message = `Hello ${name || 'Customer'},\n\nWelcome to Shop ${shopName}! We've added you to our digital ledger on ShopMunim.\n\nPlease click the link below to verify your number and activate your account:\n${link}\n\nThank you!`;
+                const message = `Hello ${name || 'Customer'},\n\nWelcome to Shop ${shopName}! We've added you to our digital ledger on XMunim.\n\nPlease click the link below to verify your number and activate your account:\n${link}\n\nThank you!`;
 
                 const url = `whatsapp://send?phone=91${phone}&text=${encodeURIComponent(message)}`;
                 const canOpen = await Linking.canOpenURL(url);
@@ -1233,7 +1233,7 @@ const PaymentRequestModal = ({ visible, onClose, customer, transactions, showToa
         if (method === 'WhatsApp') {
             template = `Dear ${customerName},\n\nThis is an automated reminder that your payment is ${delay}.\n\nPending Balance: ₹${customerBalance}\n\nWe will remind you ${freq}.\n\nPlease pay at your earliest convenience. Thank you!`;
         } else if (method === 'SMS Message') {
-            template = `ShopMunim: Dear ${customerName}, your payment is ${delay}. Balance: ₹${customerBalance}. (Auto-reminder: ${freq})`;
+            template = `XMunim: Dear ${customerName}, your payment is ${delay}. Balance: ₹${customerBalance}. (Auto-reminder: ${freq})`;
         } else {
             template = `Dear ${customerName}, your payment is ${delay}. Balance: ₹${customerBalance}. We will remind you ${freq}. Please clear your dues. Thank you!`;
         }

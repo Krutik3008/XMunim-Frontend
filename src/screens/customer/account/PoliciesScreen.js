@@ -59,12 +59,12 @@ const PoliciesScreen = () => {
                     <PolicySection
                         number="01"
                         title="Acceptance of Terms"
-                        content="By using ShopMunim, you agree to these terms and conditions. If you do not agree, please discontinue use of the application."
+                        content="By using XMunim, you agree to these terms and conditions. If you do not agree, please discontinue use of the application."
                     />
                     <PolicySection
                         number="02"
                         title="Accurate Records"
-                        content="ShopMunim is a tool for record-keeping. While we provide secure storage, users are responsible for verifying transaction amounts and settlements with shop owners."
+                        content="XMunim is a tool for record-keeping. While we provide secure storage, users are responsible for verifying transaction amounts and settlements with shop owners."
                     />
                     <PolicySection
                         number="03"
@@ -74,7 +74,7 @@ const PoliciesScreen = () => {
                     <PolicySection
                         number="04"
                         title="Disclaimer"
-                        content="ShopMunim provides the service 'as is' and is not liable for disputes between customers and shop owners regarding ledger balances."
+                        content="XMunim provides the service 'as is' and is not liable for disputes between customers and shop owners regarding ledger balances."
                     />
                 </>
             );
@@ -105,7 +105,7 @@ const PoliciesScreen = () => {
                     <View style={styles.footerNote}>
                         <Text style={styles.footerText}>
                             Questions regarding our {title.toLowerCase()}? {'\n'}
-                            Reach out to our compliance team at support@shopmunim.com
+                            Reach out to our compliance team at support@xmunim.com
                         </Text>
                     </View>
                 </View>

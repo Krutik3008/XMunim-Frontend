@@ -48,7 +48,7 @@ const CustomerHeader = ({ user, logout, showRoleDropdown, setShowRoleDropdown, h
     return (
         <View style={styles.header}>
             <View style={styles.headerTop}>
-                <Text style={styles.logo}>ShopMunim</Text>
+                <Text style={styles.logo}>XMunim</Text>
                 <View style={styles.headerRight}>
                     <TouchableOpacity
                         style={styles.roleSelector}

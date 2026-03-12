@@ -65,7 +65,7 @@ const ShopHeader = ({ title, shopName, onSwitchError }) => {
         <View style={styles.header}>
             <View style={styles.headerTop}>
                 <View style={styles.brandingContainer}>
-                    <Text style={styles.logo}>{title || 'ShopMunim'}</Text>
+                    <Text style={styles.logo}>{title || 'XMunim'}</Text>
                 </View>
 
                 <View style={styles.headerRight}>

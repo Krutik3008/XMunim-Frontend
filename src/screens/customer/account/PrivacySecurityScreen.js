@@ -165,7 +165,7 @@ const PrivacySecurityScreen = () => {
                             }
 
                             // 2. Create a temporary file path
-                            const fileUri = `${FileSystem.documentDirectory}ShopMunim_DataExport_${new Date().toISOString().split('T')[0]}.pdf`;
+                            const fileUri = `${FileSystem.documentDirectory}XMunim_DataExport_${new Date().toISOString().split('T')[0]}.pdf`;
 
                             // 3. Write base64 data to the file
                             await FileSystem.writeAsStringAsync(
@@ -340,7 +340,7 @@ const PrivacySecurityScreen = () => {
 
 
                 <View style={styles.footer}>
-                    <Text style={styles.versionText}>ShopMunim Production v{Constants.expoConfig?.version || '1.0.0'}</Text>
+                    <Text style={styles.versionText}>XMunim Production v{Constants.expoConfig?.version || '1.0.0'}</Text>
                     <View style={styles.secureConnection}>
                         <Ionicons name="shield-checkmark" size={12} color={colors.success} style={{ marginRight: 4 }} />
                         <Text style={styles.secureText}>End-to-End Secure Connection</Text>

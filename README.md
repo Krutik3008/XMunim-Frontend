@@ -1,4 +1,4 @@
-# 🏪 ShopMunimApp
+# 🏪 XMunimApp
 
 A full-featured mobile application for managing shop-customer relationships — with dedicated interfaces for **Customers**, **Shop Owners**, and **Admins**. Built with React Native & Expo.
 

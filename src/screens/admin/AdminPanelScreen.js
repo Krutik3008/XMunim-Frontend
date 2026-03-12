@@ -221,7 +221,7 @@ const AdminPanelScreen = () => {
                         >
                             <Ionicons name="settings" size={12} color="#fff" />
                         </LinearGradient>
-                        <Text style={styles.headerTitle}>ShopMunim Admin</Text>
+                        <Text style={styles.headerTitle}>XMunim Admin</Text>
                     </View>
 
                     <View style={styles.headerRight}>

@@ -34,7 +34,7 @@ const AboutScreen = () => {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={colors.gray[800]} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>About ShopMunim</Text>
+                <Text style={styles.headerTitle}>About XMunim</Text>
                 <View style={{ width: 24 }} />
             </View>
 
@@ -46,11 +46,11 @@ const AboutScreen = () => {
                 >
                     <View style={styles.statusHeader}>
                         <View style={styles.statusInfo}>
-                            <Text style={styles.statusLabel}>ShopMunim Platform</Text>
+                            <Text style={styles.statusLabel}>XMunim Platform</Text>
                             <Text style={[styles.statusValue, { color: colors.primary.blue }]}>v{Constants.expoConfig?.version || '1.0.0'} Production</Text>
                         </View>
                         <View style={styles.logoBadge}>
-                            <Text style={styles.logoText}>SM</Text>
+                            <Text style={styles.logoText}>XM</Text>
                         </View>
                     </View>
                     <Text style={styles.statusHint}>
@@ -62,7 +62,7 @@ const AboutScreen = () => {
                 <View style={styles.section}>
                     <View style={styles.missionCard}>
                         <Text style={styles.missionText}>
-                            ShopMunim is designed to bridge the gap between traditional local shop accounting and modern digital convenience.
+                            XMunim is designed to bridge the gap between traditional local shop accounting and modern digital convenience.
                             Our goal is to empower every shop owner and customer with transparent, real-time, and secure ledger tracking.
                         </Text>
                     </View>
@@ -110,15 +110,15 @@ const AboutScreen = () => {
                     <InfoRow
                         icon="globe-outline"
                         title="Official Hub"
-                        subtitle="www.shopmunim.com"
-                        onPress={() => Linking.openURL('https://shopmunim.com')}
+                        subtitle="www.xmunim.com"
+                        onPress={() => Linking.openURL('https://xmunim.com')}
                         iconColor={colors.primary.blue}
                         showBorder={false}
                     />
                 </View>
 
                 <View style={styles.footer}>
-                    <Text style={styles.versionText}>ShopMunim Production v{Constants.expoConfig?.version || '1.0.0'}</Text>
+                    <Text style={styles.versionText}>XMunim Production v{Constants.expoConfig?.version || '1.0.0'}</Text>
                     <View style={styles.secureConnection}>
                         <Ionicons name="shield-checkmark" size={14} color="#10B981" />
                         <Text style={styles.secureText}>End-to-End Secure Connection</Text>

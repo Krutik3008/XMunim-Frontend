@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "ShopMunimApp",
-    "slug": "ShopMunimApp",
-    "scheme": "shopmunim",
+    "name": "XMunimApp",
+    "slug": "xmunimapp",
+    "scheme": "xmunim",
     "owner": "krutik3011",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.krutik3011.ShopMunimApp",
+      "bundleIdentifier": "com.krutik3011.xmunimapp",
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
@@ -28,7 +28,7 @@
         "color": "#304FFE"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.krutik3011.ShopMunimApp",
+      "package": "com.krutik3011.xmunimapp",
       "softwareKeyboardLayoutMode": "pan",
       "googleServicesFile": "./google-services.json",
       "intentFilters": [
@@ -38,7 +38,7 @@
           "data": [
             {
               "scheme": "https",
-              "host": "shopmunim-backend.onrender.com",
+              "host": "xmunim-backend.onrender.com",
               "pathPrefix": "/api/public/verify-customer"
             }
           ],

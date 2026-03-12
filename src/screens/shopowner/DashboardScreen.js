@@ -490,7 +490,7 @@ const ShopOwnerDashboardScreen = () => {
         }
         const currentShop = shops.find(s => s.id === user?.shop_id) || shops[0];
         const shopName = currentShop?.name || 'our store';
-        const message = `Hello ${targetName || 'Customer'}, this is ${shopName}. We are adding you to our digital ledger on ShopMunim. Please confirm if this is your correct number.`;
+        const message = `Hello ${targetName || 'Customer'}, this is ${shopName}. We are adding you to our digital ledger on XMunim. Please confirm if this is your correct number.`;
         const url = `whatsapp://send?phone=91${targetPhone}&text=${encodeURIComponent(message)}`;
 
         try {
@@ -515,7 +515,7 @@ const ShopOwnerDashboardScreen = () => {
             if (link) {
                 const currentShop = shops.find(s => s.id === user?.shop_id) || shops[0];
                 const shopName = currentShop?.name || '';
-                const message = `Hello ${name || 'Customer'},\n\nWelcome to Shop ${shopName}! We've added you to our digital ledger on ShopMunim.\n\nPlease click the link below to verify your number and activate your account:\n${link}\n\nThank you!`;
+                const message = `Hello ${name || 'Customer'},\n\nWelcome to Shop ${shopName}! We've added you to our digital ledger on XMunim.\n\nPlease click the link below to verify your number and activate your account:\n${link}\n\nThank you!`;
 
                 const url = `whatsapp://send?phone=91${phone}&text=${encodeURIComponent(message)}`;
                 const canOpen = await Linking.canOpenURL(url);
@@ -622,7 +622,7 @@ const ShopOwnerDashboardScreen = () => {
                         <span style="color:#9CA3AF;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Business Code</span><br/>
                         <span style="color:#111827;font-size:20px;font-weight:bold;letter-spacing:3px;">${shopCode}</span>
                     </div>
-                    <p style="color:#D1D5DB;font-size:11px;margin-top:24px;">Powered by <strong style="color:#9CA3AF;">ShopMunim</strong></p>
+                    <p style="color:#D1D5DB;font-size:11px;margin-top:24px;">Powered by <strong style="color:#9CA3AF;">XMunim</strong></p>
                 </div>
             </body></html>`;
 
@@ -677,7 +677,7 @@ const ShopOwnerDashboardScreen = () => {
                         <span style="color:#9CA3AF;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Shop Code</span><br/>
                         <span style="color:#111827;font-size:20px;font-weight:bold;letter-spacing:3px;">${shopCode}</span>
                     </div>
-                    <p style="color:#D1D5DB;font-size:11px;margin-top:24px;">Powered by <strong style="color:#9CA3AF;">ShopMunim</strong></p>
+                    <p style="color:#D1D5DB;font-size:11px;margin-top:24px;">Powered by <strong style="color:#9CA3AF;">XMunim</strong></p>
                 </div>
             </body></html>`;
 
@@ -692,7 +692,7 @@ const ShopOwnerDashboardScreen = () => {
         const currentShop = shops.find(s => s.id === user?.shop_id) || shops[0];
         const shopCode = currentShop?.shop_code || 'Code';
 
-        const link = `https://shopmunim-backend.onrender.com/api/public/connect/${shopCode}`;
+        const link = `https://xmunim-backend.onrender.com/api/public/connect/${shopCode}`;
         await Clipboard.setStringAsync(link);
         showToast('Link copied to clipboard!');
     };
@@ -701,8 +701,8 @@ const ShopOwnerDashboardScreen = () => {
         const currentShop = shops.find(s => s.id === user?.shop_id) || shops[0];
         const shopCode = currentShop?.shop_code || 'Code';
 
-        const link = `https://shopmunim-backend.onrender.com/api/public/connect/${shopCode}`;
-        const message = `Check out my shop "${currentShop?.name || 'Shop'}" on ShopMunim! Code: ${shopCode}\nLink: ${link}`;
+        const link = `https://xmunim-backend.onrender.com/api/public/connect/${shopCode}`;
+        const message = `Check out my shop "${currentShop?.name || 'Shop'}" on XMunim! Code: ${shopCode}\nLink: ${link}`;
         try {
             if (type === 'whatsapp') {
                 const waUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
@@ -726,7 +726,7 @@ const ShopOwnerDashboardScreen = () => {
     // Empty State Card - Matching reference exactly
     const EmptyStateCard = () => (
         <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>Welcome to ShopMunim!</Text>
+            <Text style={styles.emptyTitle}>Welcome to XMunim!</Text>
             <Text style={styles.emptyDescription}>Create your first shop to get started</Text>
             <TouchableOpacity style={styles.createShopButton} onPress={() => navigation.navigate('CreateShop')}>
                 <Text style={styles.createShopText}>+ Create New Business</Text>
@@ -1528,7 +1528,7 @@ const ShopOwnerDashboardScreen = () => {
                                 <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }}>
                                     <View style={styles.qrContainer}>
                                         <QRCode
-                                            value={`https://shopmunim-backend.onrender.com/api/public/connect/${currentShop?.shop_code || 'Code'}`}
+                                            value={`https://xmunim-backend.onrender.com/api/public/connect/${currentShop?.shop_code || 'Code'}`}
                                             size={200}
                                             backgroundColor="white"
                                             color="black"
@@ -1561,7 +1561,7 @@ const ShopOwnerDashboardScreen = () => {
                                 <View style={styles.linkBox}>
                                     <Ionicons name="link-outline" size={20} color="#6B7280" />
                                     <Text style={styles.linkText} numberOfLines={1} ellipsizeMode="tail">
-                                        https://shopmunim-backend.onrender.com/api/public/connect/{currentShop?.shop_code || 'Code'}
+                                        https://xmunim-backend.onrender.com/api/public/connect/{currentShop?.shop_code || 'Code'}
                                     </Text>
                                 </View>
 
@@ -1661,7 +1661,7 @@ const ShopOwnerDashboardScreen = () => {
 
                     <TouchableOpacity style={styles.settingItem} onPress={() => navigation.navigate('About')}>
                         <Ionicons name="information-circle-outline" size={22} color="#4B5563" style={{ marginRight: 12 }} />
-                        <Text style={styles.settingText}>About ShopMunim</Text>
+                        <Text style={styles.settingText}>About XMunim</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={[styles.settingItem, styles.settingItemLast]} onPress={handleLogout}>

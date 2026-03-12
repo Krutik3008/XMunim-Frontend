@@ -92,7 +92,7 @@ const QRShareScreen = () => {
 
                     <View style={styles.linkInputRow}>
                         <Ionicons name="link" size={18} color="#9CA3AF" />
-                        <Text style={styles.linkText} numberOfLines={1}>shopmunim.com/connect/{shop?.name ? encodeURIComponent(shop.name.replace(/\s+/g, '')) : 'Shop'}/{shop?.shop_code || 'Code'}</Text>
+                        <Text style={styles.linkText} numberOfLines={1}>xmunim.com/connect/{shop?.name ? encodeURIComponent(shop.name.replace(/\s+/g, '')) : 'Shop'}/{shop?.shop_code || 'Code'}</Text>
                     </View>
 
                     <TouchableOpacity style={styles.copyBtn}>
@@ -181,7 +181,7 @@ const QRShareScreen = () => {
 
                 {/* Footer */}
                 <View style={styles.footer}>
-                    <Text style={styles.footerBrand}>ShopMunim</Text>
+                    <Text style={styles.footerBrand}>XMunim</Text>
                     <Text style={styles.footerVersion}>Version 1.0.0</Text>
                     <Text style={styles.footerTagline}>Digital Credit & Payment Ledger</Text>
                 </View>

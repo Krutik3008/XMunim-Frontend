@@ -1,4 +1,4 @@
-// Theme configuration for ShopMunim App
+// Theme configuration for XMunim App
 // Matching the web app's gradient and glass design
 
 export const colors = {

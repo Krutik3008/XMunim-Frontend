@@ -17,13 +17,13 @@ const QRCodeScreen = ({ route, navigation }) => {
     const { shop } = route.params;
 
     // Generate the connect URL
-    const connectUrl = `https://shopmunim.com/connect/${encodeURIComponent(shop.name.replace(/\s+/g, ''))}/${shop.shop_code}`;
+    const connectUrl = `https://xmunim.com/connect/${encodeURIComponent(shop.name.replace(/\s+/g, ''))}/${shop.shop_code}`;
 
     const handleShare = async () => {
         try {
             await Share.share({
-                message: `Join my shop "${shop.name}" on ShopMunim!\n\nShop Code: ${shop.shop_code}\n\nOr visit: ${connectUrl}`,
-                title: `Join ${shop.name} on ShopMunim`,
+                message: `Join my shop "${shop.name}" on XMunim!\n\nShop Code: ${shop.shop_code}\n\nOr visit: ${connectUrl}`,
+                title: `Join ${shop.name} on XMunim`,
             });
         } catch (error) {
             console.error('Share error:', error);

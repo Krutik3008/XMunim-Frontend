@@ -319,7 +319,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
         <SafeAreaView style={styles.container} edges={['top']}>
             <View style={{ flex: 1 }}>
                 {/* Header */}
-                <ShopHeader shopName={user?.shop_name || 'ShopMunim'} />
+                <ShopHeader shopName={user?.shop_name || 'XMunim'} />
 
                 <ScrollView
                     style={styles.scrollView}

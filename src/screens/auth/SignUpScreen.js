@@ -268,9 +268,9 @@ const SignUpScreen = ({ navigation }) => {
     // Gradient-like Text using colored spans
     const GradientTitle = () => (
         <View style={styles.titleContainer}>
-            <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#3B82F6' }}>Sh</Text>
-            <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#6366F1' }}>op</Text>
-            <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#8B5CF6' }}>Mu</Text>
+            <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#3B82F6' }}>X</Text>
+            <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#6366F1' }}>M</Text>
+            <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#8B5CF6' }}>u</Text>
             <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#A855F7' }}>ni</Text>
             <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#EC4899' }}>m</Text>
         </View>
@@ -307,7 +307,7 @@ const SignUpScreen = ({ navigation }) => {
                         <Text style={styles.cardTitle}>Create Account</Text>
                         <Text style={styles.cardDescription}>
                             {step === 'phone'
-                                ? 'Join ShopMunim to manage your ledgers digitally'
+                                ? 'Join XMunim to manage your ledgers digitally'
                                 : 'Enter the OTP sent to your phone'}
                         </Text>
 
