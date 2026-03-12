@@ -95,16 +95,9 @@ const ShopBottomNav = ({ activeTab = 'home', onTabPress }) => {
             <TabButton
                 name="customers"
                 icon="people-outline"
-                label="Customers"
+                label="Members"
                 isActive={activeTab === 'customers'}
                 onPress={() => handlePress('customers')}
-            />
-            <TabButton
-                name="services"
-                icon="briefcase-outline"
-                label="Services"
-                isActive={activeTab === 'services'}
-                onPress={() => handlePress('services')}
             />
             <TabButton
                 name="transactions"
