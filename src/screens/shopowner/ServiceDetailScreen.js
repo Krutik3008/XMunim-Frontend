@@ -269,13 +269,19 @@ const ServiceDetailScreen = ({ route, navigation }) => {
 
     const handleUpdateCustomer = async () => {
         if (!editName.trim()) {
-            showToast('Please enter name', 'error');
+            showToast('Please enter member name', 'error');
             return;
         }
         if (!editPhone.trim() || editPhone.length !== 10) {
             showToast('Please enter valid 10-digit phone', 'error');
             return;
         }
+
+        Keyboard.dismiss();
+
+        const phoneChanged = editPhone.trim() !== customer.phone;
+        const savedPhone = editPhone.trim();
+        const savedName = editName.trim();
 
         setUpdatingCustomer(true);
         try {
@@ -285,13 +291,46 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                 nickname: editNickname.trim() || null
             };
             await customerAPI.update(shopId, customer.id, updateData);
-            setCustomer(prev => ({ ...prev, ...updateData }));
+            
             showToast('Details updated successfully');
             setShowEditCustomerModal(false);
+
+            setCustomer(prev => ({ ...prev, ...updateData, is_verified: phoneChanged ? false : prev.is_verified }));
+
+            if (phoneChanged) {
+                setTimeout(() => {
+                    Alert.alert(
+                        'Phone Number Changed',
+                        'Since the phone number has changed, the member needs to be re-verified. Send verification link now?',
+                        [
+                            { text: 'Skip', style: 'cancel' },
+                            {
+                                text: 'Send Link',
+                                onPress: () => handleSendVerificationWithData(savedPhone, savedName)
+                            }
+                        ]
+                    );
+                }, 500);
+            }
         } catch (error) {
             showToast(getAPIErrorMessage(error) || 'Update failed', 'error');
         } finally {
             setUpdatingCustomer(false);
+        }
+    };
+
+    const handleSendVerificationWithData = async (phone, name) => {
+        try {
+            const response = await customerAPI.sendVerification(shopId, customer.id);
+            const link = response.data?.verification_link;
+            if (link) {
+                const message = `Hello ${name},\nVerify your number: ${link}`;
+                const url = `whatsapp://send?phone=91${phone}&text=${encodeURIComponent(message)}`;
+                await Linking.openURL(url).catch(() => Linking.openURL(`https://wa.me/91${phone}?text=${encodeURIComponent(message)}`));
+                showToast('Verification link sent');
+            }
+        } catch (error) {
+            showToast('Failed to send link', 'error');
         }
     };
 
@@ -341,7 +380,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                         </TouchableOpacity>
                     </View>
 
-                    {/* Customer Info Card */}
+                    {/* Member Info Card */}
                     <View style={styles.customerCard}>
                         <View style={styles.avatar}>
                             <Text style={styles.avatarText}>{getInitials(customer.name)}</Text>
@@ -403,20 +442,73 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                 </ScrollView>
 
                 {/* Edit Modal */}
-                <Modal visible={showEditCustomerModal} transparent animationType="fade" onRequestClose={() => setShowEditCustomerModal(false)}>
-                    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
-                        <View style={styles.modalContent}>
-                            <Text style={styles.modalTitle}>Edit Customer</Text>
-                            <TextInput style={styles.modalInput} placeholder="Name" value={editName} onChangeText={setEditName} />
-                            <TextInput style={styles.modalInput} placeholder="Phone" value={editPhone} onChangeText={setEditPhone} keyboardType="numeric" maxLength={10} />
-                            <TextInput style={styles.modalInput} placeholder="Nickname" value={editNickname} onChangeText={setEditNickname} />
-                            <View style={styles.modalButtons}>
-                                <TouchableOpacity onPress={() => setShowEditCustomerModal(false)} style={styles.cancelBtn}><Text>Cancel</Text></TouchableOpacity>
-                                <TouchableOpacity onPress={handleUpdateCustomer} style={styles.confirmBtn}>
-                                    {updatingCustomer ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff' }}>Update</Text>}
+                <Modal
+                    visible={showEditCustomerModal}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => setShowEditCustomerModal(false)}
+                    statusBarTranslucent={true}
+                >
+                    <KeyboardAvoidingView
+                        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 }}
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    >
+                        <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 20 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
+                                <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Edit Member</Text>
+                                <TouchableOpacity onPress={() => {
+                                    Keyboard.dismiss();
+                                    setShowEditCustomerModal(false);
+                                }}>
+                                    <Ionicons name="close" size={24} color="#666" />
                                 </TouchableOpacity>
                             </View>
+
+                            <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8 }}>
+                                Name <Text style={{ color: '#EF4444' }}>*</Text>
+                            </Text>
+                            <TextInput
+                                style={{ borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 16 }}
+                                value={editName}
+                                onChangeText={setEditName}
+                                placeholder="Enter member name"
+                                placeholderTextColor="#9CA3AF"
+                            />
+
+                            <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8 }}>
+                                Phone <Text style={{ color: '#EF4444' }}>*</Text>
+                            </Text>
+                            <TextInput
+                                style={{ borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 16 }}
+                                value={editPhone}
+                                onChangeText={(text) => setEditPhone(text.replace(/[^0-9]/g, '').slice(0, 10))}
+                                keyboardType="numeric"
+                                placeholder="Enter phone number"
+                                placeholderTextColor="#9CA3AF"
+                            />
+
+                            <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8 }}>Nickname</Text>
+                            <TextInput
+                                style={{ borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 12, marginBottom: 20, fontSize: 16 }}
+                                value={editNickname}
+                                onChangeText={setEditNickname}
+                                placeholder="Optional"
+                                placeholderTextColor="#9CA3AF"
+                            />
+
+                            <TouchableOpacity
+                                style={{ backgroundColor: '#3B82F6', padding: 14, borderRadius: 8, alignItems: 'center' }}
+                                onPress={handleUpdateCustomer}
+                                disabled={updatingCustomer}
+                            >
+                                {updatingCustomer ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Update Member</Text>
+                                )}
+                            </TouchableOpacity>
                         </View>
+                        {renderToast()}
                     </KeyboardAvoidingView>
                 </Modal>
 

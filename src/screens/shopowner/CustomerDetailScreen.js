@@ -495,11 +495,11 @@ const CustomerDetailScreen = ({ route, navigation }) => {
 
     const handleUpdateCustomer = async () => {
         if (!editName.trim()) {
-            showToast('Please enter customer name');
+            showToast('Please enter member name');
             return;
         }
         if (!editPhone.trim() || editPhone.length !== 10) {
-            showToast('Please enter a valid phone number');
+            showToast('Please enter valid 10-digit phone');
             return;
         }
 
