@@ -146,7 +146,7 @@ const AdminPanelScreen = () => {
         {
             id: 'users',
             name: 'Users',
-            icon: 'people-outline',
+            icon: 'person-outline',
             component: AdminUserManagement,
             Lib: Ionicons
         },
@@ -159,7 +159,7 @@ const AdminPanelScreen = () => {
         },
         {
             id: 'customers',
-            name: 'Customers',
+            name: 'Members',
             icon: 'people-outline', // Updated to match domain
             component: AdminCustomerManagement,
             Lib: Ionicons
