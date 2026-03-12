@@ -301,6 +301,23 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                 <View style={styles.totalCalculationBox}>
                     <Text style={styles.totalCalculationLabel}>Estimated total for this month:</Text>
                     <Text style={styles.totalCalculationValue}>₹{calculatedTotal.toFixed(2)}</Text>
+                    
+                    {calculatedTotal > 0 && (
+                        <TouchableOpacity 
+                            style={{ marginTop: 15 }}
+                            onPress={() => {}}
+                        >
+                            <LinearGradient
+                                colors={['#3B82F6', '#2563EB']}
+                                style={styles.paymentRequestBtn}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                            >
+                                <Ionicons name="paper-plane-outline" size={20} color="#fff" />
+                                <Text style={styles.paymentRequestText}>Send Payment Request</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
         );
@@ -760,6 +777,19 @@ const styles = StyleSheet.create({
     modalButtons: { flexDirection: 'row', gap: 12, marginTop: 8 },
     cancelBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 10, backgroundColor: '#F3F4F6' },
     confirmBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 10, backgroundColor: '#3B82F6' },
+    paymentRequestBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+        borderRadius: 10,
+        gap: 8,
+    },
+    paymentRequestText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
+    },
 });
 
 export default ServiceDetailScreen;
