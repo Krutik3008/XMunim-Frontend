@@ -1670,7 +1670,14 @@ const ShopOwnerDashboardScreen = () => {
                     </TouchableOpacity>
                 </View>
 
-                {/* Footer Removed */}
+                {/* Footer */}
+                <View style={styles.footer}>
+                    <Text style={styles.footerBrand}>XMunim</Text>
+                    <Text style={styles.footerVersion}>Version {Constants.expoConfig?.version || '1.0.0'}</Text>
+                    <Text style={styles.footerTagline}>Digital Credit & Payment Ledger</Text>
+                    <Text style={styles.footerCopyright}>©2026 DEC24 INNOVATIONS PVT LTD. All Rights Reserved.</Text>
+
+                </View>
                 {/* Spacer for bottom nav */}
                 <View style={{ height: 100 }} />
             </ScrollView >
