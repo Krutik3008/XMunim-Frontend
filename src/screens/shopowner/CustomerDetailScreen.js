@@ -595,7 +595,7 @@ const CustomerDetailScreen = ({ route, navigation }) => {
                     >
                         <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 20 }}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
-                                <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Edit Customer</Text>
+                                <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Edit Member</Text>
                                 <TouchableOpacity onPress={() => {
                                     Keyboard.dismiss();
                                     setShowEditCustomerModal(false);
@@ -639,7 +639,7 @@ const CustomerDetailScreen = ({ route, navigation }) => {
                                 {updatingCustomer ? (
                                     <ActivityIndicator color="#fff" />
                                 ) : (
-                                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Update Customer</Text>
+                                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Update Member</Text>
                                 )}
                             </TouchableOpacity>
                         </View>
