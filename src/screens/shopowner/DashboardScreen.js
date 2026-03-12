@@ -830,7 +830,7 @@ const ShopOwnerDashboardScreen = () => {
                         >
                             {dashboardStats?.total_customers || customers.length || 0}
                         </Text>
-                        <Text style={styles.statLabel}>Customers</Text>
+                        <Text style={styles.statLabel}>Members</Text>
                     </View>
                     <View style={styles.statCard}>
                         <Ionicons name="cube-outline" size={28} color="#3B82F6" />
@@ -1102,9 +1102,6 @@ const ShopOwnerDashboardScreen = () => {
                 <View style={styles.customersHeader}>
                     <Text style={styles.customersTitle}>Members</Text>
                     <View style={styles.customersHeaderRight}>
-                        <View style={styles.countBadge}>
-                            <Text style={styles.countBadgeText}>{filteredPeople.length}</Text>
-                        </View>
                         <TouchableOpacity
                             style={styles.addButtonBlue}
                             onPress={() => {
@@ -1118,6 +1115,9 @@ const ShopOwnerDashboardScreen = () => {
                             <Ionicons name="person-add-outline" size={16} color="#fff" />
                             <Text style={styles.addButtonText}>Add</Text>
                         </TouchableOpacity>
+                        <View style={styles.countBadge}>
+                            <Text style={styles.countBadgeText}>{filteredPeople.length}</Text>
+                        </View>
                     </View>
                 </View>
 

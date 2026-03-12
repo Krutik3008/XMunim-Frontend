@@ -103,6 +103,10 @@ const ServiceDetailScreen = ({ route, navigation }) => {
             </Animated.View>
         );
     };
+    const getDateStatus = (dateStr) => {
+        // Remove automatic logic, only return what is stored or null
+        return serviceLog[dateStr] || null;
+    };
 
     const calculateTotal = () => {
         if (!serviceRate || isNaN(parseFloat(serviceRate))) {
@@ -112,20 +116,33 @@ const ServiceDetailScreen = ({ route, navigation }) => {
 
         const rate = parseFloat(serviceRate);
         const year = currentMonth.getFullYear();
-        const month = (currentMonth.getMonth() + 1).toString().padStart(2, '0');
-        const monthPrefix = `${year}-${month}`;
+        const monthNum = currentMonth.getMonth();
+        const monthStr = (monthNum + 1).toString().padStart(2, '0');
+        const daysInMonth = new Date(year, monthNum + 1, 0).getDate();
+        const monthPrefix = `${year}-${monthStr}`;
 
-        let presentCount = 0;
-        Object.keys(serviceLog).forEach(dateStr => {
-            if (dateStr.startsWith(monthPrefix) && serviceLog[dateStr] === 'present') {
-                presentCount++;
-            }
-        });
-
-        if (serviceRateType === 'daily' || serviceRateType === 'hourly') {
-            setCalculatedTotal(presentCount * rate);
+        if (serviceRateType === 'monthly') {
+            // Monthly: Start with full rate, subtract for explicit "absent" markings
+            let absentCount = 0;
+            Object.keys(serviceLog).forEach(dateStr => {
+                if (dateStr.startsWith(monthPrefix) && serviceLog[dateStr] === 'absent') {
+                    absentCount++;
+                }
+            });
+            
+            const dailyRate = rate / daysInMonth;
+            const reduction = absentCount * dailyRate;
+            setCalculatedTotal(Math.max(0, rate - reduction));
         } else {
-            setCalculatedTotal(rate); // Monthly rate is fixed
+            // Daily/Hourly: Incremental total based on "present" (implicit or explicit)
+            let presentCount = 0;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${monthStr}-${day.toString().padStart(2, '0')}`;
+                if (getDateStatus(dateStr) === 'present') {
+                    presentCount++;
+                }
+            }
+            setCalculatedTotal(presentCount * rate);
         }
     };
 
@@ -152,9 +169,24 @@ const ServiceDetailScreen = ({ route, navigation }) => {
     };
 
     const toggleDateStatus = async (dateStr) => {
+        // Restriction logic: ONLY allow editing the current date
+        try {
+            const isToday = new Date().toDateString() === new Date(dateStr).toDateString();
+
+            if (!isToday) {
+                showToast("Only today's attendance can be edited", "error");
+                return;
+            }
+        } catch (e) {
+            console.error('Error in toggleDateStatus restriction:', e);
+        }
+
         const currentStatus = serviceLog[dateStr];
         let newStatus = 'present';
-        if (currentStatus === 'present') newStatus = 'absent';
+        
+        // Cycle: null -> present -> absent -> null
+        if (!currentStatus) newStatus = 'present';
+        else if (currentStatus === 'present') newStatus = 'absent';
         else if (currentStatus === 'absent') newStatus = null;
 
         const updatedLog = { ...serviceLog };
@@ -219,8 +251,14 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                         }
 
                         const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                        const status = serviceLog[dateStr];
+                        const status = getDateStatus(dateStr);
                         const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
+                        
+                        const cellDate = new Date(year, month, day);
+                        const todayDate = new Date();
+                        todayDate.setHours(0, 0, 0, 0);
+                        const isFuture = cellDate > todayDate;
+                        const isPast = cellDate < todayDate;
 
                         let cellBg = '#F9FAFB';
                         let cellBorder = '#E5E7EB';
@@ -231,7 +269,10 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                             cellBg = '#FEE2E2';
                             cellBorder = '#EF4444';
                         }
-                        if (isToday && !status) {
+                        
+                        // Highlight today if no EXPLICIT status is set yet (though getDateStatus handles 6am implicit)
+                        const hasExplicitStatus = !!serviceLog[dateStr];
+                        if (isToday && !hasExplicitStatus && status !== 'present') {
                             cellBg = '#EFF6FF';
                             cellBorder = '#3B82F6';
                         }
@@ -239,10 +280,15 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                         return (
                             <TouchableOpacity
                                 key={dateStr}
-                                style={[styles.dayCell, { backgroundColor: cellBg, borderColor: cellBorder }]}
+                                style={[
+                                    styles.dayCell, 
+                                    { backgroundColor: cellBg, borderColor: cellBorder },
+                                    isFuture && { opacity: 0.5 } // Dim only future dates
+                                ]}
                                 onPress={() => toggleDateStatus(dateStr)}
+                                disabled={!isToday} // Disable interaction for all dates except today
                             >
-                                <Text style={styles.dayText}>{day}</Text>
+                                <Text style={[styles.dayText, isFuture && { color: '#9CA3AF' }]}>{day}</Text>
                                 <View style={styles.statusIndicator}>
                                     {status === 'present' && <Ionicons name="checkmark" size={14} color="#059669" />}
                                     {status === 'absent' && <Ionicons name="close" size={14} color="#DC2626" />}
