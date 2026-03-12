@@ -382,33 +382,43 @@ const ServiceDetailScreen = ({ route, navigation }) => {
 
                     {/* Member Info Card */}
                     <View style={styles.customerCard}>
-                        <View style={styles.avatar}>
-                            <Text style={styles.avatarText}>{getInitials(customer.name)}</Text>
-                        </View>
-                        <View style={styles.customerInfo}>
-                            <Text style={styles.customerName}>{customer.name}</Text>
+                        <View style={styles.customerLeft}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                                <Text style={[styles.customerName, { flexShrink: 1, marginRight: 10 }]}>
+                                    {customer.name}
+                                    {customer.nickname ? ` (${customer.nickname})` : ''}
+                                </Text>
+                                {customer.is_verified ? (
+                                    <View style={styles.verifiedBadgeName}>
+                                        <Ionicons name="checkmark-circle" size={12} color="#10B981" />
+                                        <Text style={[styles.badgeTextName, { color: '#10B981' }]}>Verified</Text>
+                                    </View>
+                                ) : (
+                                    <TouchableOpacity
+                                        style={styles.unverifiedBadgeName}
+                                        onPress={handleSendVerification}
+                                    >
+                                        <Ionicons name="alert-circle" size={12} color="#EF4444" />
+                                        <Text style={[styles.badgeTextName, { color: '#EF4444' }]}>Unverified</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
                             <Text style={styles.customerPhone}>+91 {customer.phone}</Text>
-                            {customer.nickname && <Text style={styles.nickname}>({customer.nickname})</Text>}
                         </View>
-                        {!customer.is_verified && (
-                            <TouchableOpacity onPress={handleSendVerification} style={styles.verifyBtn}>
-                                <Text style={styles.verifyBtnText}>Verify</Text>
-                            </TouchableOpacity>
-                        )}
                     </View>
 
                     {/* Rate Settings Card */}
                     <View style={styles.sectionCard}>
-                        <Text style={styles.sectionTitle}>Pricing Settings</Text>
+                        <Text style={styles.sectionTitle}>Rate Settings</Text>
                         <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Set Rate (₹)</Text>
+                            <Text style={styles.inputLabel}>Current Rate (₹)</Text>
                             <View style={styles.rateInputRow}>
                                 <TextInput
                                     style={styles.rateTextInput}
+                                    placeholder="0"
+                                    keyboardType="numeric"
                                     value={serviceRate}
                                     onChangeText={setServiceRate}
-                                    keyboardType="numeric"
-                                    placeholder="0.00"
                                 />
                                 <View style={styles.rateTypeContainer}>
                                     {['hourly', 'daily', 'monthly'].map((type) => (
@@ -425,12 +435,19 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                                 </View>
                             </View>
                         </View>
-                        <TouchableOpacity
-                            style={[styles.saveBtn, isSavingRate && { opacity: 0.7 }]}
-                            onPress={handleSaveRateSettings}
-                            disabled={isSavingRate}
-                        >
-                            {isSavingRate ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save Settings</Text>}
+                        <TouchableOpacity onPress={handleSaveRateSettings} disabled={isSavingRate}>
+                            <LinearGradient
+                                colors={['#3B82F6', '#2563EB']}
+                                style={styles.saveBtn}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                            >
+                                {isSavingRate ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={styles.saveBtnText}>Save Settings</Text>
+                                )}
+                            </LinearGradient>
                         </TouchableOpacity>
                     </View>
 
@@ -551,13 +568,41 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#BFDBFE',
     },
-    avatarText: { fontSize: 18, fontWeight: '700', color: '#3B82F6' },
-    customerInfo: { flex: 1, marginLeft: 16 },
+    customerLeft: { flex: 1 },
     customerName: { fontSize: 18, fontWeight: '700', color: '#1A1A1A' },
     customerPhone: { fontSize: 14, color: '#666', marginTop: 2 },
-    nickname: { fontSize: 12, color: '#3B82F6', fontStyle: 'italic', marginTop: 1 },
+    nickname: { fontSize: 13, color: '#3B82F6', fontStyle: 'italic', fontWeight: '500' },
     verifyBtn: { backgroundColor: '#FEE2E2', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
     verifyBtnText: { color: '#EF4444', fontSize: 12, fontWeight: '600' },
+    verifiedBadgeName: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#D1FAE5',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 12,
+        marginLeft: 8,
+        gap: 4,
+        borderWidth: 1,
+        borderColor: '#10B981',
+    },
+    unverifiedBadgeName: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FEE2E2',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 12,
+        marginLeft: 8,
+        gap: 4,
+        borderWidth: 1,
+        borderColor: '#EF4444',
+    },
+    badgeTextName: {
+        fontSize: 10,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+    },
     sectionCard: {
         backgroundColor: '#fff',
         borderRadius: 16,
@@ -583,20 +628,39 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#1A1A1A',
     },
-    rateTypeContainer: { flexDirection: 'row', gap: 8 },
+    rateTypeContainer: {
+        flexDirection: 'row',
+        backgroundColor: '#F3F4F6',
+        borderRadius: 12,
+        padding: 4,
+        marginTop: 4,
+    },
     rateTypeBtn: {
         flex: 1,
-        paddingVertical: 8,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
+        paddingVertical: 10,
+        borderRadius: 10,
         alignItems: 'center',
-        backgroundColor: '#fff',
+        justifyContent: 'center',
     },
-    rateTypeBtnActive: { backgroundColor: '#3B82F6', borderColor: '#3B82F6' },
-    rateTypeBtnText: { fontSize: 12, color: '#666', fontWeight: '500', textTransform: 'capitalize' },
-    rateTypeBtnTextActive: { color: '#fff', fontWeight: '700' },
-    saveBtn: { backgroundColor: '#1A1A1A', paddingVertical: 14, borderRadius: 10, alignItems: 'center', marginTop: 8 },
+    rateTypeBtnActive: {
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    rateTypeBtnText: {
+        fontSize: 13,
+        color: '#6B7280',
+        fontWeight: '600',
+        textTransform: 'capitalize',
+    },
+    rateTypeBtnTextActive: {
+        color: '#2563EB',
+        fontWeight: '700',
+    },
+    saveBtn: { paddingVertical: 14, borderRadius: 10, alignItems: 'center', marginTop: 8 },
     saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
     calendarContainer: {},
     calendarHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
