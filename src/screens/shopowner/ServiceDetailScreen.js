@@ -13,7 +13,9 @@ import {
     ActivityIndicator,
     Keyboard,
     Animated,
-    Linking
+    Linking,
+    Switch,
+    TouchableWithoutFeedback
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +23,7 @@ import { customerAPI, getAPIErrorMessage } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import ShopHeader from '../../components/shopowner/ShopHeader';
 import { LinearGradient } from 'expo-linear-gradient';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const ServiceDetailScreen = ({ route, navigation }) => {
     const { customer: initialCustomer, shopId } = route.params;
@@ -50,6 +53,9 @@ const ServiceDetailScreen = ({ route, navigation }) => {
     const [editPhone, setEditPhone] = useState('');
     const [editNickname, setEditNickname] = useState('');
     const [updatingCustomer, setUpdatingCustomer] = useState(false);
+
+    // Payment Request Modal
+    const [showPaymentRequestModal, setShowPaymentRequestModal] = useState(false);
 
     useEffect(() => {
         calculateTotal();
@@ -305,7 +311,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                     {calculatedTotal > 0 && (
                         <TouchableOpacity 
                             style={{ marginTop: 15 }}
-                            onPress={() => {}}
+                            onPress={() => setShowPaymentRequestModal(true)}
                         >
                             <LinearGradient
                                 colors={['#3B82F6', '#2563EB']}
@@ -592,6 +598,23 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                     </KeyboardAvoidingView>
                 </Modal>
 
+                {/* Payment Request Modal */}
+                <PaymentRequestModal
+                    visible={showPaymentRequestModal}
+                    onClose={() => setShowPaymentRequestModal(false)}
+                    customer={{
+                        ...customer, 
+                        balance: -calculatedTotal, 
+                        shop_id: shopId,
+                        serviceMonth: currentMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' }),
+                        serviceRate: serviceRate,
+                        serviceRateType: serviceRateType
+                    }}
+                    transactions={[]} // Can be fetched if needed, passing empty for now to match prop signature
+                    showToast={showToast}
+                    renderToast={renderToast}
+                />
+
                 {renderToast()}
             </View>
         </SafeAreaView>
@@ -789,6 +812,1003 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 16,
         fontWeight: '700',
+    },
+});
+
+const PaymentRequestModal = ({ visible, onClose, customer, transactions, showToast, renderToast }) => {
+    const [paymentRequestTab, setPaymentRequestTab] = useState('sendNow');
+    const [requestType, setRequestType] = useState('Payment Due Reminder');
+    const [sendVia, setSendVia] = useState('Push Notification');
+    const [reminderMessage, setReminderMessage] = useState('');
+    const [showRequestTypeDropdown, setShowRequestTypeDropdown] = useState(false);
+    const [showSendViaDropdown, setShowSendViaDropdown] = useState(false);
+    const [scheduleDate, setScheduleDate] = useState(null);
+    const [scheduleTime, setScheduleTime] = useState(null);
+    const [showScheduleDatePicker, setShowScheduleDatePicker] = useState(false);
+    const [showScheduleTimePicker, setShowScheduleTimePicker] = useState(false);
+    const [isAutoReminderEnabled, setIsAutoReminderEnabled] = useState(customer?.is_auto_reminder_enabled || false);
+    const [autoReminderDelay, setAutoReminderDelay] = useState(customer?.auto_reminder_delay || '3 days overdue');
+    const [showAutoReminderDelayDropdown, setShowAutoReminderDelayDropdown] = useState(false);
+    const [autoReminderFrequency, setAutoReminderFrequency] = useState(customer?.auto_reminder_frequency || 'Daily until paid');
+    const [showAutoReminderFrequencyDropdown, setShowAutoReminderFrequencyDropdown] = useState(false);
+    const [autoReminderMethod, setAutoReminderMethod] = useState(customer?.auto_reminder_method || 'Push Notification');
+    const [showAutoReminderMethodDropdown, setShowAutoReminderMethodDropdown] = useState(false);
+    const [autoReminderMessage, setAutoReminderMessage] = useState(customer?.auto_reminder_message || '');
+    const [advanceAmount, setAdvanceAmount] = useState('');
+    const [advanceReason, setAdvanceReason] = useState('');
+    const [isSending, setIsSending] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [notiHistory, setNotiHistory] = useState([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+    const sortedTransactions = transactions ? [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date)) : [];
+
+    // Sync state if customer changes
+    useEffect(() => {
+        if (visible) {
+            setScheduleDate(null);
+            setScheduleTime(null);
+            setReminderMessage('');
+            setAdvanceAmount('');
+            setAdvanceReason('');
+            setRequestType('Payment Due Reminder');
+        }
+        if (customer) {
+            setIsAutoReminderEnabled(customer.is_auto_reminder_enabled || false);
+            setAutoReminderDelay(customer.auto_reminder_delay || '3 days overdue');
+            setAutoReminderFrequency(customer.auto_reminder_frequency || 'Daily until paid');
+            setAutoReminderMethod(customer.auto_reminder_method || 'Push Notification');
+            setAutoReminderMessage(customer.auto_reminder_message || '');
+
+            if (visible) {
+                fetchHistory();
+            }
+        }
+    }, [customer, visible]);
+
+    const fetchHistory = async () => {
+        if (!customer) return;
+        setLoadingHistory(true);
+        try {
+            const response = await customerAPI.getCustomerNotifications(customer.shop_id, customer.id);
+            setNotiHistory(response.data || []);
+        } catch (error) {
+            console.error('Error fetching history:', error);
+        } finally {
+            setLoadingHistory(false);
+        }
+    };
+
+    const updateAutoTemplate = (newDelay, newFreq, newMethod) => {
+        const delay = newDelay || autoReminderDelay;
+        const freq = newFreq || autoReminderFrequency;
+        const method = newMethod || autoReminderMethod;
+
+        const customerName = customer?.name || 'Customer';
+        const customerBalance = Math.abs(customer?.balance || 0).toFixed(2);
+
+        let template = "";
+        if (method === 'WhatsApp') {
+            template = `Dear ${customerName},\n\nThis is an automated reminder that your payment is ${delay}.\n\nPending Balance: ₹${customerBalance}\n\nWe will remind you ${freq}.\n\nPlease pay at your earliest convenience. Thank you!`;
+        } else if (method === 'SMS Message') {
+            template = `XMunim: Dear ${customerName}, your payment is ${delay}. Balance: ₹${customerBalance}. (Auto-reminder: ${freq})`;
+        } else {
+            template = `Dear ${customerName}, your payment is ${delay}. Balance: ₹${customerBalance}. We will remind you ${freq}. Please clear your dues. Thank you!`;
+        }
+        setAutoReminderMessage(template);
+    };
+
+    const closeAllDropdowns = () => {
+        setShowRequestTypeDropdown(false);
+        setShowSendViaDropdown(false);
+        setShowAutoReminderDelayDropdown(false);
+        setShowAutoReminderFrequencyDropdown(false);
+        setShowAutoReminderMethodDropdown(false);
+    };
+
+    const formatCurrency = (amount) => `₹${parseFloat(amount || 0).toFixed(2)}`;
+
+    const formatShortDate = (dateString) => {
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return "Invalid Date";
+            return `${date.getDate()} ${date.toLocaleString('en-US', { month: 'short' })} ${date.getFullYear()}`;
+        } catch (e) {
+            return dateString || "";
+        }
+    };
+
+    const timeAgo = (dateString) => {
+        if (!dateString) return 'No transactions';
+        const now = new Date();
+        const past = new Date(dateString);
+        const diffInMs = now - past;
+        const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+        if (diffInDays === 0) return 'Today';
+        if (diffInDays === 1) return 'Yesterday';
+        if (diffInDays < 7) return `${diffInDays} days ago`;
+        if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
+        return dateString.split('T')[0];
+    };
+
+    return (
+        <Modal
+            visible={visible}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={onClose}
+        >
+            <KeyboardAvoidingView
+                style={modalStyles.paymentModalOverlay}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            >
+                <View style={modalStyles.paymentModalContent}>
+                    {/* Header */}
+                    <View style={modalStyles.paymentModalHeader}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Ionicons name="time-outline" size={22} color="#EA580C" />
+                            <Text style={modalStyles.paymentModalTitle}>Payment Request & Reminders</Text>
+                        </View>
+                        <TouchableOpacity onPress={onClose}>
+                            <Ionicons name="close-circle-outline" size={26} color="#6B7280" />
+                        </TouchableOpacity>
+                    </View>
+
+                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" onScrollBeginDrag={Keyboard.dismiss}>
+                        <TouchableWithoutFeedback onPress={() => { closeAllDropdowns(); Keyboard.dismiss(); }}>
+                            <View>
+                                {/* Customer Details Card */}
+                                {customer && (
+                                    <View style={modalStyles.paymentCustomerCard}>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                                            <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827' }}>Customer Details</Text>
+                                            <View style={[
+                                                modalStyles.statusBadge,
+                                                { backgroundColor: customer.balance < 0 ? '#EF4444' : '#111827' }
+                                            ]}>
+                                                <Text style={modalStyles.statusBadgeText}>
+                                                    {customer.balance === 0 ? 'No Dues' : customer.balance < 0 ? 'Pending Payment' : 'Credit Available'}
+                                                </Text>
+                                            </View>
+                                        </View>
+
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
+                                            <View style={{ flex: 1, marginRight: 10 }}>
+                                                <Text style={modalStyles.cardLabel}>Service Month</Text>
+                                                <Text style={modalStyles.cardValue}>{customer.serviceMonth}</Text>
+                                            </View>
+                                            <View style={{ flex: 1, marginLeft: 10 }}>
+                                                <Text style={modalStyles.cardLabel}>Base Rate</Text>
+                                                <Text style={modalStyles.cardValue}>₹{customer.serviceRate} / {customer.serviceRateType}</Text>
+                                            </View>
+                                        </View>
+
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                            <View style={{ flex: 1, marginRight: 10 }}>
+                                                <Text style={modalStyles.cardLabel}>Calculated Total</Text>
+                                                <Text style={[modalStyles.cardValue, { color: '#EF4444' }]}>
+                                                    ₹{Math.abs(customer.balance || 0).toFixed(2)}
+                                                </Text>
+                                            </View>
+                                            <View style={{ flex: 1, marginLeft: 10 }}>
+                                                <Text style={modalStyles.cardLabel}>Assigned Member</Text>
+                                                <Text style={[modalStyles.cardValue, { fontWeight: '500', color: '#6B7280' }]}>
+                                                    {customer.name}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    </View>
+                                )}
+
+                                {/* Selection Card */}
+                                <View style={modalStyles.paymentModalTabs}>
+                                    <TouchableOpacity
+                                        style={[modalStyles.paymentModalTab, paymentRequestTab === 'sendNow' && modalStyles.paymentModalTabActive]}
+                                        onPress={() => setPaymentRequestTab('sendNow')}
+                                    >
+                                        <Ionicons name="send-outline" size={16} color={paymentRequestTab === 'sendNow' ? '#111827' : '#6B7280'} />
+                                        <Text style={[modalStyles.paymentModalTabText, paymentRequestTab === 'sendNow' && modalStyles.paymentModalTabTextActive]}>Send Now</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[modalStyles.paymentModalTab, paymentRequestTab === 'autoSetup' && modalStyles.paymentModalTabActive]}
+                                        onPress={() => setPaymentRequestTab('autoSetup')}
+                                    >
+                                        <Ionicons name="settings-outline" size={16} color={paymentRequestTab === 'autoSetup' ? '#111827' : '#6B7280'} />
+                                        <Text style={[modalStyles.paymentModalTabText, paymentRequestTab === 'autoSetup' && modalStyles.paymentModalTabTextActive]}>Auto Setup</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[modalStyles.paymentModalTab, paymentRequestTab === 'history' && modalStyles.paymentModalTabActive]}
+                                        onPress={() => setPaymentRequestTab('history')}
+                                    >
+                                        <Ionicons name="list-outline" size={16} color={paymentRequestTab === 'history' ? '#111827' : '#6B7280'} />
+                                        <Text style={[modalStyles.paymentModalTabText, paymentRequestTab === 'history' && modalStyles.paymentModalTabTextActive]}>History</Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                {/* Form Content Card */}
+                                <View style={modalStyles.paymentMainCard}>
+                                    {paymentRequestTab === 'sendNow' ? (
+                                        <View style={modalStyles.paymentTabContent}>
+                                            <Text style={modalStyles.paymentModalSectionTitle}>Send Reminder</Text>
+
+                                            {/* Request Type */}
+                                            <View style={{ marginBottom: 16, zIndex: 20 }}>
+                                                <Text style={modalStyles.paymentModalLabel}>Request Type</Text>
+                                                <TouchableOpacity
+                                                    style={modalStyles.paymentModalDropdown}
+                                                    onPress={() => setShowRequestTypeDropdown(!showRequestTypeDropdown)}
+                                                >
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                            <Text style={{ marginLeft: 0, color: '#111827' }}>{requestType}</Text>
+                                                        </View>
+                                                    </View>
+                                                    <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                                                </TouchableOpacity>
+
+
+                                                {showRequestTypeDropdown && (
+                                                    <View style={modalStyles.paymentModalDropdownOptions}>
+                                                        <TouchableOpacity
+                                                            style={[
+                                                                modalStyles.paymentModalDropdownOption,
+                                                                requestType === 'Payment Due Reminder' && { backgroundColor: '#F3F4F6' }
+                                                            ]}
+                                                            onPress={() => {
+                                                                setRequestType('Payment Due Reminder');
+                                                                setShowRequestTypeDropdown(false);
+                                                                setAdvanceAmount('');
+                                                                setAdvanceReason('');
+                                                                setReminderMessage('');
+                                                            }}
+                                                        >
+                                                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                                    <Ionicons name="cash-outline" size={16} color="#374151" />
+                                                                    <Text style={{ marginLeft: 8, color: '#374151', fontSize: 14 }}>Payment Due Reminder</Text>
+                                                                </View>
+                                                                {requestType === 'Payment Due Reminder' && (
+                                                                    <Ionicons name="checkmark-sharp" size={16} color="#374151" />
+                                                                )}
+                                                            </View>
+                                                        </TouchableOpacity>
+
+                                                        <TouchableOpacity
+                                                            style={[
+                                                                modalStyles.paymentModalDropdownOption,
+                                                                requestType === 'Advance Payment Request' && { backgroundColor: '#F3F4F6' }
+                                                            ]}
+                                                            onPress={() => {
+                                                                setRequestType('Advance Payment Request');
+                                                                setShowRequestTypeDropdown(false);
+                                                                setAdvanceAmount('');
+                                                                setAdvanceReason('');
+                                                                setReminderMessage('');
+                                                            }}
+                                                        >
+                                                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                                    <Ionicons name="trending-up-outline" size={16} color="#374151" />
+                                                                    <Text style={{ marginLeft: 8, color: '#374151', fontSize: 14 }}>Advance Payment Request</Text>
+                                                                </View>
+                                                                <View style={{ backgroundColor: '#111827', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                                                                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>New Order</Text>
+                                                                </View>
+                                                            </View>
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                )}
+                                            </View>
+
+                                            {/* Status Box */}
+                                            {requestType === 'Payment Due Reminder' && (
+                                                <View style={[modalStyles.paymentStatusBox, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
+                                                    <Ionicons name="alert-circle-outline" size={20} color="#DC2626" />
+                                                    <Text style={[modalStyles.paymentStatusText, { color: '#DC2626' }]}>
+                                                        Payment Pending of {formatCurrency(Math.abs(customer?.balance || 0))}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                                                                    {/* Advance Payment Form */}
+                                            {requestType === 'Advance Payment Request' && (
+                                                <View style={modalStyles.advanceInfoCard}>
+                                                    <View style={{ marginBottom: 16 }}>
+                                                        <Text style={modalStyles.advanceInputLabel}>Advance Amount *</Text>
+                                                        <View style={modalStyles.advanceInputWrapper}>
+                                                            <TextInput
+                                                                style={modalStyles.advanceTextInput}
+                                                                placeholder="Enter amount"
+                                                                placeholderTextColor="#9CA3AF"
+                                                                keyboardType="numeric"
+                                                                value={advanceAmount}
+                                                                onChangeText={setAdvanceAmount}
+                                                            />
+                                                        </View>
+                                                    </View>
+
+                                                    <View style={{ marginBottom: 16 }}>
+                                                        <Text style={modalStyles.advanceInputLabel}>Reason/Purpose</Text>
+                                                        <View style={modalStyles.advanceInputWrapper}>
+                                                            <TextInput
+                                                                style={modalStyles.advanceTextInput}
+                                                                placeholder="e.g., New order"
+                                                                placeholderTextColor="#9CA3AF"
+                                                                value={advanceReason}
+                                                                onChangeText={setAdvanceReason}
+                                                            />
+                                                        </View>
+                                                    </View>
+
+                                                    <View style={modalStyles.advanceTipRow}>
+                                                        <Text style={modalStyles.advanceTipText}>💡 Advance payments help secure orders and improve cash flow</Text>
+                                                    </View>
+                                                </View>
+                                            )}
+
+                                            {/* Send Via */}
+                                            <View style={{ marginBottom: 16, zIndex: 10 }}>
+                                                <Text style={modalStyles.paymentModalLabel}>Send Via</Text>
+                                                <TouchableOpacity
+                                                    style={modalStyles.paymentModalDropdown}
+                                                    onPress={() => setShowSendViaDropdown(!showSendViaDropdown)}
+                                                >
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                        <Ionicons name="chatbubble-ellipses-outline" size={16} color="#374151" />
+                                                        <Text style={{ marginLeft: 8, color: '#111827' }}>{sendVia}</Text>
+                                                    </View>
+                                                    <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                                                </TouchableOpacity>
+                                                {showSendViaDropdown && (
+                                                    <View style={modalStyles.paymentModalDropdownOptions}>
+                                                        <TouchableOpacity
+                                                            style={[modalStyles.paymentModalDropdownOption, sendVia === 'Push Notification' && { backgroundColor: '#F3F4F6' }]}
+                                                            onPress={() => { setSendVia('Push Notification'); setShowSendViaDropdown(false); }}
+                                                        >
+                                                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                                    <Ionicons name="notifications-outline" size={16} color="#374151" />
+                                                                    <Text style={{ marginLeft: 8, color: '#374151' }}>Push Notification</Text>
+                                                                </View>
+                                                                {sendVia === 'Push Notification' && <Ionicons name="checkmark-sharp" size={16} color="#374151" />}
+                                                            </View>
+                                                        </TouchableOpacity>
+
+                                                        <TouchableOpacity
+                                                            style={[modalStyles.paymentModalDropdownOption, sendVia === 'SMS Message' && { backgroundColor: '#F3F4F6' }]}
+                                                            onPress={() => { setSendVia('SMS Message'); setShowSendViaDropdown(false); }}
+                                                        >
+                                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                                <Ionicons name="chatbubble-outline" size={16} color="#374151" />
+                                                                <Text style={{ marginLeft: 8, color: '#374151' }}>SMS Message</Text>
+                                                            </View>
+                                                        </TouchableOpacity>
+
+                                                        <TouchableOpacity
+                                                            style={[modalStyles.paymentModalDropdownOption, sendVia === 'WhatsApp' && { backgroundColor: '#F3F4F6' }]}
+                                                            onPress={() => { setSendVia('WhatsApp'); setShowSendViaDropdown(false); }}
+                                                        >
+                                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                                <Ionicons name="logo-whatsapp" size={16} color="#374151" />
+                                                                <Text style={{ marginLeft: 8, color: '#374151' }}>WhatsApp</Text>
+                                                            </View>
+                                                        </TouchableOpacity>
+
+                                                        <TouchableOpacity
+                                                            style={[modalStyles.paymentModalDropdownOption, sendVia === 'Phone Call' && { backgroundColor: '#F3F4F6' }]}
+                                                            onPress={async () => {
+                                                                setShowSendViaDropdown(false);
+                                                                const sanitizedPhone = customer.phone.replace(/[^0-9+]/g, '');
+                                                                const url = `tel:${sanitizedPhone}`;
+                                                                Linking.openURL(url).catch(() => {
+                                                                    showToast('Phone calls are not available on this device');
+                                                                });
+                                                                onClose();
+                                                                return;
+                                                            }}
+                                                        >
+                                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                                <Ionicons name="call-outline" size={16} color="#374151" />
+                                                                <Text style={{ marginLeft: 8, color: '#374151' }}>Phone Call</Text>
+                                                            </View>
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                )}
+                                            </View>
+
+                                            {/* Message */}
+                                            <View style={{ marginBottom: 20 }}>
+                                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                                                    <Text style={modalStyles.paymentModalLabel}>Message</Text>
+                                                    <TouchableOpacity
+                                                        style={modalStyles.paymentTemplateBtn}
+                                                        onPress={() => {
+                                                            const name = customer?.name || 'Customer';
+                                                            if (requestType === 'Payment Due Reminder') {
+                                                                const amount = Math.abs(customer?.balance || 0).toFixed(2);
+                                                                const month = customer?.serviceMonth || 'this month';
+                                                                const template = `Dear ${name},\n\nYou have a pending payment of ₹${amount} for your delivery service in ${month}.\n\nPlease make the payment at your earliest convenience.\n\nThank you!`;
+                                                                setReminderMessage(template);
+                                                            } else if (requestType === 'Advance Payment Request') {
+                                                                const amount = advanceAmount || '0.00';
+                                                                const reason = (advanceReason && advanceReason.trim()) ? advanceReason : 'your order';
+                                                                const template = `Dear ${name},\n\nThis is a request for an advance payment of ₹${amount} for ${reason}.\n\nPlease complete the payment to proceed with your request.\n\nThank you!`;
+                                                                setReminderMessage(template);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Text style={{ fontSize: 11, color: '#4B5563', fontWeight: '500' }}>Use Template</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                                <TextInput
+                                                    style={modalStyles.paymentMessageInput}
+                                                    placeholder="Enter your reminder message..."
+                                                    placeholderTextColor="#9CA3AF"
+                                                    multiline
+                                                    numberOfLines={3}
+                                                    value={reminderMessage}
+                                                    onChangeText={setReminderMessage}
+                                                    textAlignVertical="top"
+                                                    maxLength={500}
+                                                />
+                                            </View>
+
+                                            {/* Schedule Options */}
+                                            <View style={{ marginBottom: 20 }}>
+                                                <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827', marginBottom: 12 }}>Schedule Options</Text>
+
+                                                <View style={{ marginBottom: 12 }}>
+                                                    <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 6 }}>Date (Optional)</Text>
+                                                    <TouchableOpacity
+                                                        style={modalStyles.paymentModalDropdown}
+                                                        onPress={() => setShowScheduleDatePicker(true)}
+                                                    >
+                                                        <Text style={{ color: scheduleDate ? '#111827' : '#9CA3AF' }}>
+                                                            {scheduleDate ? scheduleDate.toLocaleDateString() : 'dd-mm-yyyy'}
+                                                        </Text>
+                                                        <Ionicons name="calendar-outline" size={18} color="#111827" />
+                                                    </TouchableOpacity>
+                                                </View>
+
+                                                <View>
+                                                    <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 6 }}>Time (Optional)</Text>
+                                                    <TouchableOpacity
+                                                        style={modalStyles.paymentModalDropdown}
+                                                        onPress={() => setShowScheduleTimePicker(true)}
+                                                    >
+                                                        <Text style={{ color: scheduleTime ? '#111827' : '#9CA3AF' }}>
+                                                            {scheduleTime ? scheduleTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                                                        </Text>
+                                                        <Ionicons name="time-outline" size={18} color="#111827" />
+                                                    </TouchableOpacity>
+                                                    <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>Leave empty to send immediately</Text>
+                                                </View>
+
+                                                {showScheduleDatePicker && (
+                                                    <DateTimePicker
+                                                        value={scheduleDate || new Date()}
+                                                        mode="date"
+                                                        display="default"
+                                                        onChange={(event, selectedDate) => {
+                                                            setShowScheduleDatePicker(false);
+                                                            if (selectedDate) setScheduleDate(selectedDate);
+                                                        }}
+                                                    />
+                                                )}
+                                                {showScheduleTimePicker && (
+                                                    <DateTimePicker
+                                                        value={scheduleTime || new Date()}
+                                                        mode="time"
+                                                        display="default"
+                                                        onChange={(event, selectedTime) => {
+                                                            setShowScheduleTimePicker(false);
+                                                            if (selectedTime) setScheduleTime(selectedTime);
+                                                        }}
+                                                    />
+                                                )}
+                                            </View>
+
+                                            {/* Send Button */}
+                                            <TouchableOpacity
+                                                style={[modalStyles.paymentSendBtn, { backgroundColor: '#2563EB', opacity: isSending ? 0.7 : 1 }]}
+                                                onPress={async () => {
+                                                    if (isSending) return;
+                                                    if (!reminderMessage.trim() && requestType === 'Payment Due Reminder') {
+                                                        showToast('Please enter a message', 'error');
+                                                        return;
+                                                    }
+                                                    if (requestType === 'Advance Payment Request' && !advanceAmount) {
+                                                        showToast('Please enter an amount', 'error');
+                                                        return;
+                                                    }
+
+                                                    setIsSending(true);
+                                                    try {
+                                                        const payload = {
+                                                            title: requestType,
+                                                            body: reminderMessage,
+                                                            method: sendVia,
+                                                            amount: requestType === 'Advance Payment Request' ? advanceAmount : Math.abs(customer.balance),
+                                                            purpose: requestType === 'Advance Payment Request' ? advanceReason : 'Payment Due',
+                                                            scheduled_for: scheduleDate ? `${scheduleDate.toISOString().split('T')[0]} ${scheduleTime ? scheduleTime.toLocaleTimeString([], { hour12: false }) : '10:00:00'}` : null
+                                                        };
+
+                                                        if (sendVia === 'WhatsApp') {
+                                                            let phoneString = customer.phone.replace(/[^0-9]/g, '');
+                                                            if (phoneString.length === 10) phoneString = '91' + phoneString;
+                                                            const url = `whatsapp://send?phone=${phoneString}&text=${encodeURIComponent(reminderMessage)}`;
+                                                            await Linking.openURL(url).catch(() => Linking.openURL(`https://wa.me/${phoneString}?text=${encodeURIComponent(reminderMessage)}`));
+                                                        } else if (sendVia === 'SMS Message') {
+                                                            const url = Platform.OS === 'ios'
+                                                                ? `sms:${customer.phone}&body=${encodeURIComponent(reminderMessage)}`
+                                                                : `sms:${customer.phone}?body=${encodeURIComponent(reminderMessage)}`;
+                                                            await Linking.openURL(url);
+                                                        }
+
+                                                        await customerAPI.notifyPayment(customer.shop_id, customer.id, payload);
+                                                        showToast('Notification request logged successfully');
+                                                        fetchHistory();
+                                                        onClose();
+                                                    } catch (error) {
+                                                        showToast(getAPIErrorMessage(error), 'error');
+                                                    } finally {
+                                                        setIsSending(false);
+                                                    }
+                                                }}
+                                            >
+                                                {isSending ? (
+                                                    <ActivityIndicator color="#fff" size="small" />
+                                                ) : (
+                                                    <>
+                                                        <Ionicons name="paper-plane" size={18} color="#fff" />
+                                                        <Text style={modalStyles.paymentSendBtnText}>Send Notification</Text>
+                                                    </>
+                                                )}
+                                            </TouchableOpacity>
+                                        </View>
+                                    ) : paymentRequestTab === 'autoSetup' ? (
+                                        <View style={modalStyles.paymentTabContent}>
+                                            <Text style={modalStyles.paymentModalSectionTitle}>Auto Reminders</Text>
+
+                                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={{ fontSize: 14, color: '#374151', fontWeight: '500' }}>Enable Auto Reminders</Text>
+                                                    <Text style={{ fontSize: 12, color: '#6B7280' }}>Send reminders automatically</Text>
+                                                </View>
+                                                <Switch
+                                                    value={isAutoReminderEnabled}
+                                                    onValueChange={(val) => {
+                                                        setIsAutoReminderEnabled(val);
+                                                        if (val && !autoReminderMessage) updateAutoTemplate();
+                                                    }}
+                                                    trackColor={{ false: '#D1D5DB', true: '#A7F3D0' }}
+                                                    thumbColor={isAutoReminderEnabled ? '#10B981' : '#F3F4F6'}
+                                                />
+                                            </View>
+
+                                            {isAutoReminderEnabled && (
+                                                <>
+                                                    {/* Auto Delay */}
+                                                    <View style={{ marginBottom: 16 }}>
+                                                        <Text style={modalStyles.paymentModalLabel}>Start reminder when</Text>
+                                                        <TouchableOpacity
+                                                            style={modalStyles.paymentModalDropdown}
+                                                            onPress={() => setShowAutoReminderDelayDropdown(!showAutoReminderDelayDropdown)}
+                                                        >
+                                                            <Text style={{ color: '#111827' }}>{autoReminderDelay}</Text>
+                                                            <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                                                        </TouchableOpacity>
+                                                        {showAutoReminderDelayDropdown && (
+                                                            <View style={modalStyles.paymentModalDropdownOptions}>
+                                                                {['On due date', '1 day overdue', '3 days overdue', '1 week overdue'].map(opt => (
+                                                                    <TouchableOpacity key={opt} style={modalStyles.paymentModalDropdownOption} onPress={() => { setAutoReminderDelay(opt); setShowAutoReminderDelayDropdown(false); updateAutoTemplate(opt); }}>
+                                                                        <Text style={{ color: '#374151' }}>{opt}</Text>
+                                                                    </TouchableOpacity>
+                                                                ))}
+                                                            </View>
+                                                        )}
+                                                    </View>
+
+                                                    {/* Frequency */}
+                                                    <View style={{ marginBottom: 16 }}>
+                                                        <Text style={modalStyles.paymentModalLabel}>Repeat frequency</Text>
+                                                        <TouchableOpacity
+                                                            style={modalStyles.paymentModalDropdown}
+                                                            onPress={() => setShowAutoReminderFrequencyDropdown(!showAutoReminderFrequencyDropdown)}
+                                                        >
+                                                            <Text style={{ color: '#111827' }}>{autoReminderFrequency}</Text>
+                                                            <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                                                        </TouchableOpacity>
+                                                        {showAutoReminderFrequencyDropdown && (
+                                                            <View style={modalStyles.paymentModalDropdownOptions}>
+                                                                {['Daily until paid', 'Every 3 days', 'Weekly', 'Once only'].map(opt => (
+                                                                    <TouchableOpacity key={opt} style={modalStyles.paymentModalDropdownOption} onPress={() => { setAutoReminderFrequency(opt); setShowAutoReminderFrequencyDropdown(false); updateAutoTemplate(null, opt); }}>
+                                                                        <Text style={{ color: '#374151' }}>{opt}</Text>
+                                                                    </TouchableOpacity>
+                                                                ))}
+                                                            </View>
+                                                        )}
+                                                    </View>
+
+                                                    {/* Method */}
+                                                    <View style={{ marginBottom: 16 }}>
+                                                        <Text style={modalStyles.paymentModalLabel}>Notification Method</Text>
+                                                        <TouchableOpacity
+                                                            style={modalStyles.paymentModalDropdown}
+                                                            onPress={() => setShowAutoReminderMethodDropdown(!showAutoReminderMethodDropdown)}
+                                                        >
+                                                            <Text style={{ color: '#111827' }}>{autoReminderMethod}</Text>
+                                                            <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                                                        </TouchableOpacity>
+                                                        {showAutoReminderMethodDropdown && (
+                                                            <View style={modalStyles.paymentModalDropdownOptions}>
+                                                                {['Push Notification', 'SMS Message', 'WhatsApp'].map(opt => (
+                                                                    <TouchableOpacity key={opt} style={modalStyles.paymentModalDropdownOption} onPress={() => { setAutoReminderMethod(opt); setShowAutoReminderMethodDropdown(false); updateAutoTemplate(null, null, opt); }}>
+                                                                        <Text style={{ color: '#374151' }}>{opt}</Text>
+                                                                    </TouchableOpacity>
+                                                                ))}
+                                                            </View>
+                                                        )}
+                                                    </View>
+
+                                                    {/* Auto Message */}
+                                                    <View style={{ marginBottom: 20 }}>
+                                                        <Text style={modalStyles.paymentModalLabel}>Auto Message Content</Text>
+                                                        <TextInput
+                                                            style={modalStyles.paymentMessageInput}
+                                                            multiline
+                                                            value={autoReminderMessage}
+                                                            onChangeText={setAutoReminderMessage}
+                                                            placeholder="Message to be sent automatically..."
+                                                        />
+                                                    </View>
+                                                </>
+                                            )}
+
+                                            <TouchableOpacity
+                                                style={[modalStyles.paymentSendBtn, { backgroundColor: '#10B981', opacity: isSaving ? 0.7 : 1 }]}
+                                                onPress={async () => {
+                                                    if (isSaving) return;
+                                                    setIsSaving(true);
+                                                    try {
+                                                        const settings = {
+                                                            is_auto_reminder_enabled: isAutoReminderEnabled,
+                                                            auto_reminder_delay: autoReminderDelay,
+                                                            auto_reminder_frequency: autoReminderFrequency,
+                                                            auto_reminder_method: autoReminderMethod,
+                                                            auto_reminder_message: autoReminderMessage
+                                                        };
+                                                        await customerAPI.updateCustomer(customer.shop_id, customer.id, settings);
+                                                        showToast('Settings saved successfully');
+                                                    } catch (error) {
+                                                        showToast('Error saving settings', 'error');
+                                                    } finally {
+                                                        setIsSaving(false);
+                                                    }
+                                                }}
+                                            >
+                                                {isSaving ? (
+                                                    <ActivityIndicator color="#fff" size="small" />
+                                                ) : (
+                                                    <Text style={modalStyles.paymentSendBtnText}>Save Settings</Text>
+                                                )}
+                                            </TouchableOpacity>
+                                        </View>
+                                    ) : (
+                                        <View style={modalStyles.paymentTabContent}>
+                                            <Text style={modalStyles.paymentModalSectionTitle}>Reminder History</Text>
+                                            {loadingHistory ? (
+                                                <ActivityIndicator size="small" color="#3B82F6" style={{ marginTop: 20 }} />
+                                            ) : notiHistory.length > 0 ? (
+                                                notiHistory.map((item, index) => (
+                                                    <View key={index} style={modalStyles.historyItem}>
+                                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                                                            <Text style={{ fontWeight: '700', fontSize: 13 }}>{item.method}</Text>
+                                                            <Text style={{ fontSize: 11, color: '#6B7280' }}>{formatShortDate(item.created_at)}</Text>
+                                                        </View>
+                                                        <Text style={{ fontSize: 12, color: '#4B5563' }} numberOfLines={2}>{item.body}</Text>
+                                                    </View>
+                                                ))
+                                            ) : (
+                                                <Text style={{ textAlign: 'center', color: '#9CA3AF', marginTop: 20 }}>No history found</Text>
+                                            )}
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </ScrollView>
+                </View>
+            </KeyboardAvoidingView>
+            {renderToast()}
+        </Modal>
+    );
+};
+
+const modalStyles = StyleSheet.create({
+    paymentModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    paymentModalContent: {
+        backgroundColor: '#F3F4F6',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        maxHeight: '92%',
+        paddingBottom: Platform.OS === 'ios' ? 20 : 0,
+    },
+    paymentModalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 18,
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+    },
+    paymentModalTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#111827',
+        marginLeft: 10,
+    },
+    paymentCustomerCard: {
+        backgroundColor: '#fff',
+        marginHorizontal: 16,
+        marginTop: 16,
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+    },
+    cardLabel: {
+        fontSize: 12,
+        color: '#6B7280',
+        marginBottom: 4,
+        fontWeight: '500',
+    },
+    cardValue: {
+        fontSize: 14,
+        color: '#111827',
+        fontWeight: '700',
+    },
+    statusBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+    statusBadgeText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: '700',
+    },
+    paymentModalTabs: {
+        flexDirection: 'row',
+        backgroundColor: '#fff',
+        marginHorizontal: 16,
+        marginTop: 16,
+        borderRadius: 12,
+        padding: 4,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    paymentModalTab: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        borderRadius: 8,
+        gap: 6,
+    },
+    paymentModalTabActive: {
+        backgroundColor: '#F3F4F6',
+    },
+    paymentModalTabText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#6B7280',
+    },
+    paymentModalTabTextActive: {
+        color: '#111827',
+    },
+    paymentMainCard: {
+        backgroundColor: '#fff',
+        marginHorizontal: 16,
+        marginTop: 16,
+        marginBottom: 16,
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    paymentTabContent: {
+        // Wrapper for content inside the main card
+    },
+    paymentModalLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#374151',
+        marginBottom: 8,
+    },
+    paymentModalDropdown: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#F9FAFB',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+    },
+    paymentModalDropdownOptions: {
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 8,
+        marginTop: 4,
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        overflow: 'hidden',
+    },
+    paymentModalDropdownOption: {
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+    },
+    paymentStatusBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        borderRadius: 8,
+        borderWidth: 1,
+        marginBottom: 16,
+        gap: 10,
+    },
+    paymentStatusText: {
+        fontSize: 13,
+        fontWeight: '500',
+        flex: 1,
+    },
+    paymentTemplateBtn: {
+        backgroundColor: '#F3F4F6',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 4,
+    },
+    paymentMessageInput: {
+        backgroundColor: '#F9FAFB',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 8,
+        padding: 12,
+        fontSize: 14,
+        color: '#111827',
+        minHeight: 100,
+    },
+    paymentSendBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+        borderRadius: 10,
+        gap: 10,
+    },
+    paymentSendBtnText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    paymentModalSectionTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#111827',
+        marginBottom: 16,
+    },
+    historyEmptyState: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 40,
+    },
+    historyEmptyText: {
+        fontSize: 14,
+        color: '#9CA3AF',
+        marginTop: 12,
+    },
+    historyItem: {
+        backgroundColor: '#F9FAFB',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    historyHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    historyMethod: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    historyMethodText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#374151',
+    },
+    historyDate: {
+        fontSize: 11,
+        color: '#6B7280',
+    },
+    historyMessage: {
+        fontSize: 13,
+        color: '#4B5563',
+        lineHeight: 18,
+    },
+    historyStatus: {
+        marginTop: 8,
+        alignSelf: 'flex-start',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        backgroundColor: '#ECFDF5',
+    },
+    historyStatusText: {
+        fontSize: 10,
+        color: '#059669',
+        fontWeight: '600',
+    },
+    advanceInfoCard: {
+        backgroundColor: '#EFF6FF',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: '#DBEAFE',
+    },
+    advanceInputLabel: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#111827',
+        marginBottom: 8,
+    },
+    advanceInputWrapper: {
+        backgroundColor: '#F9FAFB',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+    },
+    advanceTextInput: {
+        fontSize: 15,
+        color: '#111827',
+    },
+    advanceTipRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 4,
+    },
+    advanceTipText: {
+        fontSize: 12,
+        color: '#2563EB',
+        lineHeight: 18,
     },
 });
 
