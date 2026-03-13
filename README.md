@@ -14,6 +14,7 @@ A full-featured mobile application for managing shop-customer relationships — 
 ### Data & Networking
 - **Axios**: HTTP client for backend REST API communication.
 - **AsyncStorage**: Local persistent storage for JWT tokens and user preferences.
+- **MSG91 OTP SDK**: `@msg91comm/sendotp-react-native` for seamless authentication.
 
 ### Reporting & Media
 - **Expo Print / Sharing / FileSystem**: PDF generation and file sharing.
@@ -141,7 +142,8 @@ npx expo start
 - Add new customer (by phone number)
 - Search customers by name
 - Customer cards with balance status (color-coded: green/red/neutral)
-- Tap customer to view detailed transactions
+- Tap customer to view- Send payment request via WhatsApp
+- **Staff & Services Management**: Dedicated screen for managing employees/services with attendance logs and rate settings.
 
 #### 📋 Customer Detail Screen
 - Customer info header with balance display
@@ -274,8 +276,8 @@ The app connects to the **ShopMunim Backend** (FastAPI) for all data operations.
 
 ### Configuration
 Update the API base URL in `src/api/index.js` (or equivalent) to point to your backend:
-- **Development**: `http://10.0.2.2:8000` (for Android Emulator)
-- **Production**: `https://shopmunim-backend.onrender.com`
+- **Development**: `http://10.0.2.2:8000` (Android Emulator) or your LAN IP (e.g., `http://192.168.x.x:8000`)
+- **Production**: `https://xmunim-backend.onrender.com`
 
 ---
 
