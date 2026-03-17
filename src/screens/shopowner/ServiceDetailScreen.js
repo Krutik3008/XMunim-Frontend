@@ -621,6 +621,23 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                         </View>
                     </View>
 
+                    {/* Verification Pending Banner */}
+                    {!customer.is_verified && (
+                        <View style={styles.verificationBanner}>
+                            <View style={styles.bannerHeader}>
+                                <Ionicons name="alert-triangle" size={20} color="#92400E" />
+                                <Text style={styles.bannerTitle}>Verification Pending. You cannot change rate and attendance until this service is verified.</Text>
+                            </View>
+                            <TouchableOpacity 
+                                style={styles.bannerAction}
+                                onPress={() => handleSendVerificationWithData(customer.phone, customer.name)}
+                            >
+                                <Ionicons name="logo-whatsapp" size={18} color="#2563EB" />
+                                <Text style={styles.bannerActionText}>Send via WhatsApp</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
                     {/* Rate Settings Card */}
                     <View style={styles.sectionCard}>
                         <Text style={styles.sectionTitle}>Rate Settings</Text>
@@ -961,6 +978,36 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 16,
         fontWeight: '700',
+    },
+    verificationBanner: {
+        backgroundColor: '#FFFBEB',
+        borderColor: '#FEF3C7',
+        borderWidth: 1,
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 20,
+    },
+    bannerHeader: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 10,
+        marginBottom: 12,
+    },
+    bannerTitle: {
+        flex: 1,
+        fontSize: 14,
+        color: '#92400E',
+        lineHeight: 20,
+    },
+    bannerAction: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    bannerActionText: {
+        fontSize: 14,
+        color: '#2563EB',
+        fontWeight: '600',
     },
 });
 

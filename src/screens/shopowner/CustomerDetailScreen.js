@@ -736,6 +736,53 @@ const CustomerDetailScreen = ({ route, navigation }) => {
                             </View>
                         )}
 
+                        {/* Verification Pending Banner */}
+                        {customer && !customer.is_verified && (
+                            <View style={{
+                                backgroundColor: '#FFFBEB',
+                                borderColor: '#FEF3C7',
+                                borderWidth: 1,
+                                borderRadius: 12,
+                                padding: 16,
+                                marginBottom: 20,
+                            }}>
+                                <View style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'flex-start',
+                                    gap: 10,
+                                    marginBottom: 12,
+                                }}>
+                                    <Ionicons name="warning" size={20} color="#92400E" />
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={{
+                                            fontSize: 14,
+                                            color: '#92400E',
+                                            lineHeight: 20,
+                                        }}>
+                                            Verification Pending. You cannot add transactions until this customer is verified.
+                                        </Text>
+                                    </View>
+                                </View>
+                                <TouchableOpacity 
+                                    style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        gap: 8,
+                                    }}
+                                    onPress={() => handleSendVerification(customer.shop_id, customer.id, customer.phone, customer.name)}
+                                >
+                                    <Ionicons name="logo-whatsapp" size={18} color="#2563EB" />
+                                    <Text style={{
+                                        fontSize: 14,
+                                        color: '#2563EB',
+                                        fontWeight: '600',
+                                    }}>
+                                        Send via WhatsApp
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
                         {/* Add Transaction Button */}
                         <TouchableOpacity
                             onPress={() => setShowAddTransactionModal(true)}
@@ -3112,6 +3159,7 @@ const modalStyles = StyleSheet.create({
     paginationBtnTextDisabled: { color: '#D1D5DB' },
     paginationCenter: { alignItems: 'center' },
     paginationPageLabel: { fontSize: 11, color: '#9CA3AF' },
+    paginationPageNum: { fontSize: 14, fontWeight: '600', color: '#111827' },
     paginationPageNum: { fontSize: 14, fontWeight: '600', color: '#111827' },
 });
 
