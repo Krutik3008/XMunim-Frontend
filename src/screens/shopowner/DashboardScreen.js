@@ -447,16 +447,20 @@ const ShopOwnerDashboardScreen = () => {
     };
 
     const handleAddCustomer = async () => {
-        if (!newCustomerName.trim()) {
+        // Dismiss keyboard immediately
+        Keyboard.dismiss();
+
+        const savedName = newCustomerName.trim();
+        const savedPhone = newCustomerPhone.trim();
+
+        if (!savedName) {
             showToast('Please enter customer name');
             return;
         }
-        if (!newCustomerPhone.trim() || newCustomerPhone.length !== 10) {
+        if (!savedPhone || savedPhone.length !== 10) {
             showToast('Please enter a valid phone number');
             return;
         }
-
-        Keyboard.dismiss();
 
         setAddingCustomer(true);
         try {
@@ -1231,7 +1235,7 @@ const ShopOwnerDashboardScreen = () => {
                                                         {person.type === 'staff' ? 'Staff' : 'Service'}
                                                     </Text>
                                                 </View>
-                                                {person.service_rate && (
+                                                {!!person.service_rate && (
                                                     <View style={[styles.statusBadge, { backgroundColor: '#EBF5FF' }]}>
                                                         <Text style={[styles.statusBadgeText, { color: '#3B82F6' }]}>
                                                             {person.service_rate_type === 'hourly' ? 'Hourly' : 'Daily'}
@@ -1291,7 +1295,7 @@ const ShopOwnerDashboardScreen = () => {
                                                     adjustsFontSizeToFit={true}
                                                     minimumFontScale={0.5}
                                                 >
-                                                    {(person.balance || 0) == 0 ? '' : (person.balance || 0) > 0 ? '+' : '-'}&#8377;{Math.abs(person.balance || 0).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                                                    {(person.balance || 0) == 0 ? '' : (person.balance || 0) > 0 ? '+' : '-'}₹{Math.abs(person.balance || 0).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
                                                 </Text>
                                             </View>
                                         </View>
