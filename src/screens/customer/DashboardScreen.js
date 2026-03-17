@@ -655,6 +655,12 @@ const CustomerDashboardScreen = () => {
                                             onPress={() => {
                                                 if (item.customer?.type === 'customer') {
                                                     setSelectedShopLedger(item);
+                                                } else if (item.customer?.type === 'staff') {
+                                                    navigation.navigate('StaffLedgerDetail', {
+                                                        customer: item.customer,
+                                                        shopId: item.shop?.id,
+                                                        shopDetails: item.shop
+                                                    });
                                                 } else {
                                                     navigation.navigate('ServiceLedgerDetail', {
                                                         customer: item.customer,
