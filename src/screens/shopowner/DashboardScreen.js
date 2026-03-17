@@ -173,6 +173,7 @@ const ShopOwnerDashboardScreen = () => {
     const [newCustomerPhone, setNewCustomerPhone] = useState('');
     const [newCustomerNickname, setNewCustomerNickname] = useState('');
     const [newCustomerType, setNewCustomerType] = useState('customer');
+    const [newCustomerUpiId, setNewCustomerUpiId] = useState('');
     const [addingCustomer, setAddingCustomer] = useState(false);
     const [services, setServices] = useState([]);
     const [loadingServices, setLoadingServices] = useState(false);
@@ -452,6 +453,8 @@ const ShopOwnerDashboardScreen = () => {
 
         const savedName = newCustomerName.trim();
         const savedPhone = newCustomerPhone.trim();
+        const savedType = newCustomerType;
+        const savedNickname = newCustomerNickname.trim() || null;
 
         if (!savedName) {
             showToast('Please enter customer name');
@@ -471,21 +474,23 @@ const ShopOwnerDashboardScreen = () => {
             }
 
             let res;
-            if (newCustomerType === 'services') {
+            if (savedType === 'services') {
                 // Use serviceAPI for delivery/cleaning services
                 res = await serviceAPI.create(shopId, {
                     name: savedName,
                     phone: savedPhone,
-                    nickname: newCustomerNickname.trim() || null,
+                    nickname: savedNickname,
+                    upi_id: newCustomerUpiId.trim() || null,
                     service_rate: 0, // Initial rate
                     service_rate_type: 'daily'
                 });
-            } else if (newCustomerType === 'staff') {
+            } else if (savedType === 'staff') {
                 // Use staffAPI for salaried/hourly staff
                 res = await staffAPI.create(shopId, {
                     name: savedName,
                     phone: savedPhone,
-                    nickname: newCustomerNickname.trim() || null,
+                    nickname: savedNickname,
+                    upi_id: newCustomerUpiId.trim() || null,
                     role: 'Staff', // Default role
                     service_rate: 0,
                     service_rate_type: 'daily'
@@ -495,8 +500,8 @@ const ShopOwnerDashboardScreen = () => {
                 res = await customerAPI.create(shopId, {
                     name: savedName,
                     phone: savedPhone,
-                    nickname: newCustomerNickname.trim() || null,
-                    type: newCustomerType
+                    nickname: savedNickname,
+                    type: savedType
                 });
             }
 
@@ -509,6 +514,7 @@ const ShopOwnerDashboardScreen = () => {
             setNewCustomerName('');
             setNewCustomerPhone('');
             setNewCustomerNickname('');
+            setNewCustomerUpiId('');
             setNewCustomerType('customer');
 
             loadCustomers(shopId); // Refresh customer list
@@ -525,7 +531,7 @@ const ShopOwnerDashboardScreen = () => {
                         { text: 'Skip', style: 'cancel' },
                         {
                             text: 'Send Link',
-                            onPress: () => handleSendVerification(shopId, newlyCreatedCustomerId, savedPhone, savedName, newCustomerType)
+                            onPress: () => handleSendVerification(shopId, newlyCreatedCustomerId, savedPhone, savedName, savedType)
                         }
                     ]
                 );
@@ -1756,7 +1762,8 @@ const ShopOwnerDashboardScreen = () => {
     // Handle service selection for detail view
     const handleServiceSelect = (service) => {
         const shopId = user?.shop_id || (shops.length > 0 ? shops[0].id : null);
-        navigation.navigate('ServiceDetail', { 
+        const navScreen = service.type === 'staff' ? 'StaffDetail' : 'ServiceDetail';
+        navigation.navigate(navScreen, { 
             customer: service, 
             serviceId: service.id, 
             shopId, 
@@ -1891,6 +1898,20 @@ const ShopOwnerDashboardScreen = () => {
                         autoCapitalize="words"
                     />
                 </View>
+
+                {newCustomerType === 'staff' && (
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.inputLabel}>UPI ID (for payments)</Text>
+                        <TextInput
+                            style={styles.textInput}
+                            placeholder="e.g. name@upi"
+                            placeholderTextColor="#9CA3AF"
+                            value={newCustomerUpiId}
+                            onChangeText={setNewCustomerUpiId}
+                            autoCapitalize="none"
+                        />
+                    </View>
+                )}
 
                 <TouchableOpacity
                     style={[styles.submitButton, addingCustomer && styles.submitButtonDisabled]}

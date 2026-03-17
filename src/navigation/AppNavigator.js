@@ -13,6 +13,7 @@ import SignUpScreen from '../screens/auth/SignUpScreen';
 import ShopOwnerDashboard from '../screens/shopowner/DashboardScreen';
 import CustomerDetailScreen from '../screens/shopowner/CustomerDetailScreen';
 import ServiceDetailScreen from '../screens/shopowner/ServiceDetailScreen';
+import StaffDetailScreen from '../screens/shopowner/StaffDetailScreen';
 import ProductsScreen from '../screens/shopowner/ProductsScreen';
 import QRCodeScreen from '../screens/shopowner/QRCodeScreen';
 import QRShareScreen from '../screens/shopowner/QRShareScreen';
@@ -59,6 +60,7 @@ const MainNavigator = ({ initialRoute }) => (
         {/* Shop Owner Additional Screens */}
         <Stack.Screen name="CustomerDetail" component={CustomerDetailScreen} />
         <Stack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
+        <Stack.Screen name="StaffDetail" component={StaffDetailScreen} />
         <Stack.Screen name="Products" component={ProductsScreen} />
         <Stack.Screen name="QRCode" component={QRCodeScreen} />
         <Stack.Screen name="QRShare" component={QRShareScreen} />
