@@ -7,7 +7,6 @@ import {
     TouchableOpacity,
     Alert,
     TextInput,
-    Modal,
     KeyboardAvoidingView,
     Platform,
     ActivityIndicator,
@@ -19,6 +18,7 @@ import {
     TouchableWithoutFeedback,
     Dimensions
 } from 'react-native';
+import Modal from '../../components/ui/Modal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -703,97 +703,71 @@ const StaffDetailScreen = ({ route, navigation }) => {
                 {/* Edit Modal */}
                 <Modal
                     visible={showEditCustomerModal}
-                    transparent={true}
-                    animationType="fade"
-                    onRequestClose={() => setShowEditCustomerModal(false)}
-                    statusBarTranslucent={true}
+                    onClose={() => setShowEditCustomerModal(false)}
+                    title="Edit Member"
+                    toast={toastVisible && showEditCustomerModal ? renderToast() : null}
                 >
-                    <KeyboardAvoidingView
-                        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 }}
-                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    <View style={{ marginBottom: 20 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8, color: '#374151' }}>
+                            Name <Text style={{ color: '#EF4444' }}>*</Text>
+                        </Text>
+                        <TextInput
+                            style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 12, fontSize: 16, backgroundColor: '#F9FAFB' }}
+                            value={editName}
+                            onChangeText={setEditName}
+                            placeholder="Enter member name"
+                            placeholderTextColor="#9CA3AF"
+                        />
+                    </View>
+
+                    <View style={{ marginBottom: 20 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8, color: '#374151' }}>
+                            Phone <Text style={{ color: '#EF4444' }}>*</Text>
+                        </Text>
+                        <TextInput
+                            style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 12, fontSize: 16, backgroundColor: '#F9FAFB' }}
+                            value={editPhone}
+                            onChangeText={(text) => setEditPhone(text.replace(/[^0-9]/g, '').slice(0, 10))}
+                            keyboardType="numeric"
+                            placeholder="Enter phone number"
+                            placeholderTextColor="#9CA3AF"
+                        />
+                    </View>
+
+                    <View style={{ marginBottom: 20 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8, color: '#374151' }}>Nickname</Text>
+                        <TextInput
+                            style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 12, fontSize: 16, backgroundColor: '#F9FAFB' }}
+                            value={editNickname}
+                            onChangeText={setEditNickname}
+                            placeholder="Optional"
+                            placeholderTextColor="#9CA3AF"
+                        />
+                    </View>
+
+                    <View style={{ marginBottom: 10 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8, color: '#374151' }}>UPI ID (for payments)</Text>
+                        <TextInput
+                            style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 12, fontSize: 16, backgroundColor: '#F9FAFB' }}
+                            value={editUpiId}
+                            onChangeText={setEditUpiId}
+                            placeholder="e.g. name@upi"
+                            placeholderTextColor="#9CA3AF"
+                            autoCapitalize="none"
+                        />
+                    </View>
+
+                    <TouchableOpacity
+                        style={{ backgroundColor: '#3B82F6', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 10, marginBottom: 10 }}
+                        onPress={handleUpdateCustomer}
+                        disabled={updatingCustomer}
                     >
-                        <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 20, maxHeight: Dimensions.get('window').height * 0.7 }}>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
-                                <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Edit Member</Text>
-                                <TouchableOpacity onPress={() => {
-                                    Keyboard.dismiss();
-                                    setShowEditCustomerModal(false);
-                                }}>
-                                    <Ionicons name="close" size={24} color="#666" />
-                                </TouchableOpacity>
-                            </View>
-
-                            <ScrollView 
-                                showsVerticalScrollIndicator={false} 
-                                bounces={false}
-                                style={{ maxHeight: keyboardVisible ? 320 : undefined }}
-                                contentContainerStyle={{ paddingBottom: 10 }}
-                            >
-                                <View style={{ marginBottom: 20 }}>
-                                    <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8, color: '#374151' }}>
-                                        Name <Text style={{ color: '#EF4444' }}>*</Text>
-                                    </Text>
-                                    <TextInput
-                                        style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 12, fontSize: 16, backgroundColor: '#F9FAFB' }}
-                                        value={editName}
-                                        onChangeText={setEditName}
-                                        placeholder="Enter member name"
-                                        placeholderTextColor="#9CA3AF"
-                                    />
-                                </View>
-
-                                <View style={{ marginBottom: 20 }}>
-                                    <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8, color: '#374151' }}>
-                                        Phone <Text style={{ color: '#EF4444' }}>*</Text>
-                                    </Text>
-                                    <TextInput
-                                        style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 12, fontSize: 16, backgroundColor: '#F9FAFB' }}
-                                        value={editPhone}
-                                        onChangeText={(text) => setEditPhone(text.replace(/[^0-9]/g, '').slice(0, 10))}
-                                        keyboardType="numeric"
-                                        placeholder="Enter phone number"
-                                        placeholderTextColor="#9CA3AF"
-                                    />
-                                </View>
-
-                                <View style={{ marginBottom: 20 }}>
-                                    <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8, color: '#374151' }}>Nickname</Text>
-                                    <TextInput
-                                        style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 12, fontSize: 16, backgroundColor: '#F9FAFB' }}
-                                        value={editNickname}
-                                        onChangeText={setEditNickname}
-                                        placeholder="Optional"
-                                        placeholderTextColor="#9CA3AF"
-                                    />
-                                </View>
-
-                                <View style={{ marginBottom: 10 }}>
-                                    <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8, color: '#374151' }}>UPI ID (for payments)</Text>
-                                    <TextInput
-                                        style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 12, fontSize: 16, backgroundColor: '#F9FAFB' }}
-                                        value={editUpiId}
-                                        onChangeText={setEditUpiId}
-                                        placeholder="e.g. name@upi"
-                                        placeholderTextColor="#9CA3AF"
-                                        autoCapitalize="none"
-                                    />
-                                </View>
-
-                                <TouchableOpacity
-                                    style={{ backgroundColor: '#3B82F6', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 10, marginBottom: 10 }}
-                                    onPress={handleUpdateCustomer}
-                                    disabled={updatingCustomer}
-                                >
-                                    {updatingCustomer ? (
-                                        <ActivityIndicator color="#fff" />
-                                    ) : (
-                                        <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Update Member</Text>
-                                    )}
-                                </TouchableOpacity>
-                            </ScrollView>
-                        </View>
-                        {renderToast()}
-                    </KeyboardAvoidingView>
+                        {updatingCustomer ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Update Member</Text>
+                        )}
+                    </TouchableOpacity>
                 </Modal>
 
 
