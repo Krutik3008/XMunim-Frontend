@@ -1836,10 +1836,10 @@ const ShopOwnerDashboardScreen = () => {
                 toast={toastVisible && showAddCustomerModal ? renderToast() : null}
             >
                 <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Member Name <Text style={styles.required}>*</Text></Text>
+                    <Text style={styles.inputLabel}>Name <Text style={styles.required}>*</Text></Text>
                     <TextInput
                         style={styles.textInput}
-                        placeholder="Enter member name"
+                        placeholder="Enter name"
                         placeholderTextColor="#9CA3AF"
                         value={newCustomerName}
                         onChangeText={setNewCustomerName}
