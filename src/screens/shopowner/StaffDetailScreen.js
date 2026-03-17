@@ -16,7 +16,8 @@ import {
     Linking,
     Switch,
     RefreshControl,
-    TouchableWithoutFeedback
+    TouchableWithoutFeedback,
+    Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -62,6 +63,16 @@ const StaffDetailScreen = ({ route, navigation }) => {
     const [editNickname, setEditNickname] = useState('');
     const [editUpiId, setEditUpiId] = useState('');
     const [updatingCustomer, setUpdatingCustomer] = useState(false);
+    const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+    useEffect(() => {
+        const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+        const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+        return () => {
+            keyboardDidShowListener.remove();
+            keyboardDidHideListener.remove();
+        };
+    }, []);
 
     // Payment Request Modal
 
@@ -699,9 +710,9 @@ const StaffDetailScreen = ({ route, navigation }) => {
                 >
                     <KeyboardAvoidingView
                         style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 }}
-                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                     >
-                        <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 20 }}>
+                        <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 20, maxHeight: Dimensions.get('window').height * 0.7 }}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
                                 <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Edit Member</Text>
                                 <TouchableOpacity onPress={() => {
@@ -712,59 +723,74 @@ const StaffDetailScreen = ({ route, navigation }) => {
                                 </TouchableOpacity>
                             </View>
 
-                            <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8 }}>
-                                Name <Text style={{ color: '#EF4444' }}>*</Text>
-                            </Text>
-                            <TextInput
-                                style={{ borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 16 }}
-                                value={editName}
-                                onChangeText={setEditName}
-                                placeholder="Enter member name"
-                                placeholderTextColor="#9CA3AF"
-                            />
-
-                            <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8 }}>
-                                Phone <Text style={{ color: '#EF4444' }}>*</Text>
-                            </Text>
-                            <TextInput
-                                style={{ borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 16 }}
-                                value={editPhone}
-                                onChangeText={(text) => setEditPhone(text.replace(/[^0-9]/g, '').slice(0, 10))}
-                                keyboardType="numeric"
-                                placeholder="Enter phone number"
-                                placeholderTextColor="#9CA3AF"
-                            />
-
-                            <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8 }}>Nickname</Text>
-                            <TextInput
-                                style={{ borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 16 }}
-                                value={editNickname}
-                                onChangeText={setEditNickname}
-                                placeholder="Optional"
-                                placeholderTextColor="#9CA3AF"
-                            />
-
-                            <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8 }}>UPI ID (for payments)</Text>
-                            <TextInput
-                                style={{ borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 12, marginBottom: 20, fontSize: 16 }}
-                                value={editUpiId}
-                                onChangeText={setEditUpiId}
-                                placeholder="e.g. name@upi"
-                                placeholderTextColor="#9CA3AF"
-                                autoCapitalize="none"
-                            />
-
-                            <TouchableOpacity
-                                style={{ backgroundColor: '#3B82F6', padding: 14, borderRadius: 8, alignItems: 'center' }}
-                                onPress={handleUpdateCustomer}
-                                disabled={updatingCustomer}
+                            <ScrollView 
+                                showsVerticalScrollIndicator={false} 
+                                bounces={false}
+                                style={{ maxHeight: keyboardVisible ? 320 : undefined }}
+                                contentContainerStyle={{ paddingBottom: 10 }}
                             >
-                                {updatingCustomer ? (
-                                    <ActivityIndicator color="#fff" />
-                                ) : (
-                                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Update Member</Text>
-                                )}
-                            </TouchableOpacity>
+                                <View style={{ marginBottom: 20 }}>
+                                    <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8, color: '#374151' }}>
+                                        Name <Text style={{ color: '#EF4444' }}>*</Text>
+                                    </Text>
+                                    <TextInput
+                                        style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 12, fontSize: 16, backgroundColor: '#F9FAFB' }}
+                                        value={editName}
+                                        onChangeText={setEditName}
+                                        placeholder="Enter member name"
+                                        placeholderTextColor="#9CA3AF"
+                                    />
+                                </View>
+
+                                <View style={{ marginBottom: 20 }}>
+                                    <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8, color: '#374151' }}>
+                                        Phone <Text style={{ color: '#EF4444' }}>*</Text>
+                                    </Text>
+                                    <TextInput
+                                        style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 12, fontSize: 16, backgroundColor: '#F9FAFB' }}
+                                        value={editPhone}
+                                        onChangeText={(text) => setEditPhone(text.replace(/[^0-9]/g, '').slice(0, 10))}
+                                        keyboardType="numeric"
+                                        placeholder="Enter phone number"
+                                        placeholderTextColor="#9CA3AF"
+                                    />
+                                </View>
+
+                                <View style={{ marginBottom: 20 }}>
+                                    <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8, color: '#374151' }}>Nickname</Text>
+                                    <TextInput
+                                        style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 12, fontSize: 16, backgroundColor: '#F9FAFB' }}
+                                        value={editNickname}
+                                        onChangeText={setEditNickname}
+                                        placeholder="Optional"
+                                        placeholderTextColor="#9CA3AF"
+                                    />
+                                </View>
+
+                                <View style={{ marginBottom: 10 }}>
+                                    <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8, color: '#374151' }}>UPI ID (for payments)</Text>
+                                    <TextInput
+                                        style={{ borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, padding: 12, fontSize: 16, backgroundColor: '#F9FAFB' }}
+                                        value={editUpiId}
+                                        onChangeText={setEditUpiId}
+                                        placeholder="e.g. name@upi"
+                                        placeholderTextColor="#9CA3AF"
+                                        autoCapitalize="none"
+                                    />
+                                </View>
+
+                                <TouchableOpacity
+                                    style={{ backgroundColor: '#3B82F6', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 10, marginBottom: 10 }}
+                                    onPress={handleUpdateCustomer}
+                                    disabled={updatingCustomer}
+                                >
+                                    {updatingCustomer ? (
+                                        <ActivityIndicator color="#fff" />
+                                    ) : (
+                                        <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Update Member</Text>
+                                    )}
+                                </TouchableOpacity>
+                            </ScrollView>
                         </View>
                         {renderToast()}
                     </KeyboardAvoidingView>
