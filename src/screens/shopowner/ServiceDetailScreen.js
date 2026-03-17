@@ -625,7 +625,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                     {!customer.is_verified && (
                         <View style={styles.verificationBanner}>
                             <View style={styles.bannerHeader}>
-                                <Ionicons name="alert-triangle" size={20} color="#92400E" />
+                                <Ionicons name="warning" size={20} color="#92400E" />
                                 <Text style={styles.bannerTitle}>Verification Pending. You cannot change rate and attendance until this service is verified.</Text>
                             </View>
                             <TouchableOpacity 
