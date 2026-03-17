@@ -171,12 +171,11 @@ const CustomerDashboardScreen = () => {
 
     // Calculate summary stats
     const getSummaryStats = () => {
-        const customerTypeData = ledgerData.filter(item => item.customer?.type === 'customer');
-        const totalShops = customerTypeData.length;
+        const totalShops = ledgerData.length;
         let totalOwed = 0;
         let netBalance = 0;
 
-        customerTypeData.forEach(item => {
+        ledgerData.forEach(item => {
             const balance = item.customer?.balance || 0;
             if (balance < 0) {
                 totalOwed += Math.abs(balance);
@@ -541,7 +540,8 @@ const CustomerDashboardScreen = () => {
 
     // Ledger Tab Content
     const LedgerContent = () => {
-        const customerTypeData = ledgerData.filter(item => item.customer?.type === 'customer');
+        // Show all ledger entries (customer, staff, and services)
+        const displayData = ledgerData;
 
         return (
             <ScrollView
@@ -578,20 +578,46 @@ const CustomerDashboardScreen = () => {
                             ))}
                         </View>
                     </>
-                ) : customerTypeData.length === 0 ? (
+                ) : displayData.length === 0 ? (
                     <LedgerEmptyState />
                 ) : (
                     <>
                         <SummaryStatsCards />
                         <View style={styles.ledgerList}>
-                            {customerTypeData.map((item, index) => (
+                            {displayData.map((item, index) => (
                                 <View key={index} style={styles.ledgerItemContainer}>
                                     <View style={styles.ledgerItemHeader}>
                                         <View style={styles.ledgerInfo}>
-                                            <Text style={styles.shopName}>{item.shop?.name}</Text>
-                                            <Text style={styles.shopLocation}>{item.shop?.location}</Text>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                <Text style={styles.shopName} numberOfLines={1}>{item.shop?.name}</Text>
+                                            </View>
+                                            <Text style={styles.shopLocation} numberOfLines={1}>{item.shop?.location}</Text>
 
                                             {(() => {
+                                                const type = item.customer?.type || 'customer';
+                                                
+                                                if (type === 'staff' || type === 'services') {
+                                                    const rate = item.customer?.service_rate || 0;
+                                                    const rateType = item.customer?.service_rate_type || 'daily';
+                                                    
+                                                    return (
+                                                        <View style={styles.ledgerBalanceRow}>
+                                                            <View style={{ flexDirection: 'row', gap: 6 }}>
+                                                                <View style={[styles.statusBadge, { backgroundColor: '#F3F4F6' }]}>
+                                                                    <Text style={[styles.statusBadgeText, { color: '#4B5563' }]}>
+                                                                        {type === 'staff' ? 'Staff' : 'Service'}
+                                                                    </Text>
+                                                                </View>
+                                                                <View style={[styles.statusBadge, { backgroundColor: '#EBF5FF' }]}>
+                                                                    <Text style={[styles.statusBadgeText, { color: '#3B82F6' }]}>
+                                                                        {rateType.charAt(0).toUpperCase() + rateType.slice(1)}
+                                                                    </Text>
+                                                                </View>
+                                                            </View>
+                                                        </View>
+                                                    );
+                                                }
+
                                                 const balance = item.customer?.balance || 0;
                                                 let badgeStyle = styles.badgeClear;
                                                 let textStyle = styles.badgeClearText;
@@ -626,7 +652,17 @@ const CustomerDashboardScreen = () => {
                                         <TouchableOpacity
                                             style={styles.ledgerArrow}
                                             activeOpacity={0.7}
-                                            onPress={() => setSelectedShopLedger(item)}
+                                            onPress={() => {
+                                                if (item.customer?.type === 'customer') {
+                                                    setSelectedShopLedger(item);
+                                                } else {
+                                                    navigation.navigate('ServiceLedgerDetail', {
+                                                        customer: item.customer,
+                                                        shopId: item.shop?.id,
+                                                        shopDetails: item.shop
+                                                    });
+                                                }
+                                            }}
                                         >
                                             <Ionicons
                                                 name="arrow-forward"

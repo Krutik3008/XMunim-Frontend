@@ -177,7 +177,7 @@ const ServiceLedgerDetailScreen = () => {
                             <Ionicons name="arrow-back" size={24} color="#2563EB" />
                         </TouchableOpacity>
                         <View>
-                            <Text style={styles.headerTitle}>Service Details</Text>
+                            <Text style={styles.headerTitle}>{customer?.name || 'Service Details'}</Text>
                             <Text style={styles.headerSubtitle}>{shopDetails?.name || 'Shop Details'}</Text>
                         </View>
                     </View>
@@ -207,7 +207,7 @@ const ServiceLedgerDetailScreen = () => {
                         <View style={{ marginBottom: 16 }}>
                             <View style={styles.infoRow}>
                                 <Text style={styles.label}>Type:</Text>
-                                <Text style={[styles.value, { textTransform: 'capitalize' }]}>{customer?.type || 'Service'}</Text>
+                                <Text style={[styles.value, { textTransform: 'capitalize' }]}>{customer?.role || customer?.category || (customer?.type === 'services' ? 'Service' : customer?.type) || 'Service'}</Text>
                             </View>
                             <View style={styles.infoRow}>
                                 <Text style={styles.label}>Rate Type:</Text>
