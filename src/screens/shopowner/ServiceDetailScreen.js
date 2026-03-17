@@ -97,7 +97,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
 
     useEffect(() => {
         calculateTotal();
-    }, [serviceLog, serviceRate, serviceRateType, currentMonth]);
+    }, [serviceLog, customer.service_rate, customer.service_rate_type, currentMonth]);
 
     const showToast = (message, type = 'success') => {
         Keyboard.dismiss();
@@ -157,12 +157,15 @@ const ServiceDetailScreen = ({ route, navigation }) => {
     };
 
     const calculateTotal = () => {
-        if (!serviceRate || isNaN(parseFloat(serviceRate))) {
+        const savedRate = customer.service_rate;
+        const savedRateType = customer.service_rate_type;
+
+        if (savedRate === undefined || savedRate === null || isNaN(parseFloat(savedRate))) {
             setCalculatedTotal(0);
             return;
         }
 
-        const globalRate = parseFloat(serviceRate);
+        const globalRate = parseFloat(savedRate);
         const year = currentMonth.getFullYear();
         const monthNum = currentMonth.getMonth();
         const monthStr = (monthNum + 1).toString().padStart(2, '0');
@@ -172,7 +175,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        if (serviceRateType === 'monthly') {
+        if (savedRateType === 'monthly') {
             // Monthly: Start with full rate, subtract for explicit "absent" markings
             let absentCount = 0;
             Object.keys(serviceLog).forEach(dateStr => {
