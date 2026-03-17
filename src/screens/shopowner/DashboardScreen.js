@@ -28,7 +28,7 @@ import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import { Modal, Skeleton } from '../../components/ui';
 import { useAuth } from '../../context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import { shopAPI, getAPIErrorMessage, customerAPI, productAPI, transactionAPI } from '../../api';
+import { shopAPI, getAPIErrorMessage, customerAPI, productAPI, transactionAPI, serviceAPI, staffAPI } from '../../api';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import AddTransactionModal from './AddTransactionModal';
 import ShopHeader from '../../components/shopowner/ShopHeader';
@@ -174,6 +174,10 @@ const ShopOwnerDashboardScreen = () => {
     const [newCustomerNickname, setNewCustomerNickname] = useState('');
     const [newCustomerType, setNewCustomerType] = useState('customer');
     const [addingCustomer, setAddingCustomer] = useState(false);
+    const [services, setServices] = useState([]);
+    const [loadingServices, setLoadingServices] = useState(false);
+    const [staff, setStaff] = useState([]);
+    const [loadingStaff, setLoadingStaff] = useState(false);
 
     // Add Transaction State
     const [transactions, setTransactions] = useState([]);
@@ -250,6 +254,8 @@ const ShopOwnerDashboardScreen = () => {
         if (currentShopId) {
             if (activeTab === 'customers' || activeTab === 'services') {
                 loadCustomers(currentShopId, customers.length === 0);
+                loadServices(currentShopId, services.length === 0);
+                loadStaff(currentShopId, staff.length === 0);
             } else if (activeTab === 'products') {
                 loadProducts(currentShopId, products.length === 0);
             } else if (activeTab === 'transactions') {
@@ -378,6 +384,32 @@ const ShopOwnerDashboardScreen = () => {
         }
     };
 
+    const loadServices = async (shopId, showLoading = true) => {
+        try {
+            if (!shopId) return;
+            if (showLoading) setLoadingServices(true);
+            const response = await serviceAPI.getAll(shopId);
+            setServices(response.data || []);
+        } catch (error) {
+            console.log('Failed to load services:', error);
+        } finally {
+            if (showLoading) setLoadingServices(false);
+        }
+    };
+
+    const loadStaff = async (shopId, showLoading = true) => {
+        try {
+            if (!shopId) return;
+            if (showLoading) setLoadingStaff(true);
+            const response = await staffAPI.getAll(shopId);
+            setStaff(response.data || []);
+        } catch (error) {
+            console.log('Failed to load staff:', error);
+        } finally {
+            if (showLoading) setLoadingStaff(false);
+        }
+    };
+
     const loadTransactions = async (shopId, showLoading = true) => {
         try {
             if (!shopId) return;
@@ -434,20 +466,40 @@ const ShopOwnerDashboardScreen = () => {
                 return;
             }
 
-            const savedName = newCustomerName.trim();
-            const savedPhone = newCustomerPhone.trim();
-
-            const res = await customerAPI.create(shopId, {
-                name: savedName,
-                phone: savedPhone,
-                nickname: newCustomerNickname.trim() || null,
-                type: newCustomerType
-            });
+            let res;
+            if (newCustomerType === 'services') {
+                // Use serviceAPI for delivery/cleaning services
+                res = await serviceAPI.create(shopId, {
+                    name: savedName,
+                    phone: savedPhone,
+                    nickname: newCustomerNickname.trim() || null,
+                    service_rate: 0, // Initial rate
+                    service_rate_type: 'daily'
+                });
+            } else if (newCustomerType === 'staff') {
+                // Use staffAPI for salaried/hourly staff
+                res = await staffAPI.create(shopId, {
+                    name: savedName,
+                    phone: savedPhone,
+                    nickname: newCustomerNickname.trim() || null,
+                    role: 'Staff', // Default role
+                    service_rate: 0,
+                    service_rate_type: 'daily'
+                });
+            } else {
+                // Use customerAPI for regular customers
+                res = await customerAPI.create(shopId, {
+                    name: savedName,
+                    phone: savedPhone,
+                    nickname: newCustomerNickname.trim() || null,
+                    type: newCustomerType
+                });
+            }
 
             const newlyCreatedCustomerId = res.data?.id;
 
             setShowAddCustomerModal(false);
-            showToast('User added successfully');
+            showToast('Member added successfully');
 
             // Clear state
             setNewCustomerName('');
@@ -455,7 +507,9 @@ const ShopOwnerDashboardScreen = () => {
             setNewCustomerNickname('');
             setNewCustomerType('customer');
 
-            loadCustomers(shopId); // Refresh list
+            loadCustomers(shopId); // Refresh customer list
+            loadServices(shopId);  // Refresh services list
+            loadStaff(shopId);     // Refresh staff list
             loadDashboardStats(shopId); // Refresh home stats
 
             // After successful add, ask to send WhatsApp
@@ -467,7 +521,7 @@ const ShopOwnerDashboardScreen = () => {
                         { text: 'Skip', style: 'cancel' },
                         {
                             text: 'Send Link',
-                            onPress: () => handleSendVerification(shopId, newlyCreatedCustomerId, savedPhone, savedName)
+                            onPress: () => handleSendVerification(shopId, newlyCreatedCustomerId, savedPhone, savedName, newCustomerType)
                         }
                     ]
                 );
@@ -507,9 +561,10 @@ const ShopOwnerDashboardScreen = () => {
         }
     };
 
-    const handleSendVerification = async (shopId, customerId, phone, name) => {
+    const handleSendVerification = async (shopId, customerId, phone, name, type = 'customer') => {
         try {
-            const response = await customerAPI.sendVerification(shopId, customerId);
+            const api = type === 'services' ? serviceAPI : (type === 'staff' ? staffAPI : customerAPI);
+            const response = await api.sendVerification(shopId, customerId);
             const link = response.data?.verification_link;
 
             if (link) {
@@ -570,7 +625,10 @@ const ShopOwnerDashboardScreen = () => {
         if (user?.shop_id || (shops.length > 0 && shops[0].id)) {
             const shopId = user?.shop_id || shops[0].id;
             loadDashboardStats(shopId);
-            if (activeTab === 'customers') loadCustomers(shopId);
+            if (activeTab === 'customers') {
+                loadCustomers(shopId);
+                loadServices(shopId);
+            }
             if (activeTab === 'products') loadProducts(shopId);
             if (activeTab === 'home') loadTransactions(shopId);
         }
@@ -1043,12 +1101,13 @@ const ShopOwnerDashboardScreen = () => {
         const hasShops = shops.length > 0;
 
         // Filter all "people" (customers, staff, services) based on search query
-        const filteredPeople = customers.filter(person =>
+        const allPeople = [...customers, ...services, ...staff];
+        const filteredPeople = allPeople.filter(person =>
             person && 
             (
                 person.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 person.phone?.includes(searchQuery) ||
-                person.nickname?.toLowerCase().includes(searchQuery.toLowerCase())
+                (person.nickname || '').toLowerCase().includes(searchQuery.toLowerCase())
             )
         );
 
@@ -1693,7 +1752,12 @@ const ShopOwnerDashboardScreen = () => {
     // Handle service selection for detail view
     const handleServiceSelect = (service) => {
         const shopId = user?.shop_id || (shops.length > 0 ? shops[0].id : null);
-        navigation.navigate('ServiceDetail', { customer: service, shopId });
+        navigation.navigate('ServiceDetail', { 
+            customer: service, 
+            serviceId: service.id, 
+            shopId, 
+            type: service.type || 'services' 
+        });
     };
 
 

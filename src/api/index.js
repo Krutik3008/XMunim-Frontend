@@ -193,6 +193,64 @@ export const productAPI = {
         api.delete(`/shops/${shopId}/products/${productId}`),
 };
 
+// ============ SERVICE APIs (Dedicated collection for delivery/cleaning services) ============
+
+export const serviceAPI = {
+    // Get all services for a shop
+    getAll: (shopId) => api.get(`/shops/${shopId}/services`),
+
+    // Create a service
+    create: (shopId, data) => api.post(`/shops/${shopId}/services`, data),
+
+    // Get a specific service
+    getById: (shopId, serviceId) => api.get(`/shops/${shopId}/services/${serviceId}`),
+
+    // Update service details
+    update: (shopId, serviceId, data) =>
+        api.put(`/shops/${shopId}/services/${serviceId}`, data),
+
+    // Update service/staff calendar data and rate
+    updateServiceData: (shopId, serviceId, data) =>
+        api.put(`/shops/${shopId}/services/${serviceId}/service_data`, data),
+        
+    // Delete a service
+    delete: (shopId, serviceId) =>
+        api.delete(`/shops/${shopId}/services/${serviceId}`),
+
+    // Send verification link
+    sendVerification: (shopId, serviceId) =>
+        api.post(`/shops/${shopId}/services/${serviceId}/send-verification`),
+};
+
+// ============ STAFF APIs (Dedicated collection for salaried/hourly staff) ============
+
+export const staffAPI = {
+    // Get all staff for a shop
+    getAll: (shopId) => api.get(`/shops/${shopId}/staff`),
+
+    // Create a staff member
+    create: (shopId, data) => api.post(`/shops/${shopId}/staff`, data),
+
+    // Get a specific staff member
+    getById: (shopId, staffId) => api.get(`/shops/${shopId}/staff/${staffId}`),
+
+    // Update staff details
+    update: (shopId, staffId, data) =>
+        api.put(`/shops/${shopId}/staff/${staffId}`, data),
+
+    // Update staff service/attendance data
+    updateServiceData: (shopId, staffId, data) =>
+        api.put(`/shops/${shopId}/staff/${staffId}/service_data`, data),
+
+    // Delete a staff member
+    delete: (shopId, staffId) =>
+        api.delete(`/shops/${shopId}/staff/${staffId}`),
+
+    // Send verification link
+    sendVerification: (shopId, staffId) =>
+        api.post(`/shops/${shopId}/staff/${staffId}/send-verification`),
+};
+
 // ============ TRANSACTION APIs ============
 
 export const transactionAPI = {

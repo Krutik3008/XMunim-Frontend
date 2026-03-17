@@ -15,21 +15,28 @@ import {
     Animated,
     Linking,
     Switch,
+    RefreshControl,
     TouchableWithoutFeedback
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { customerAPI, getAPIErrorMessage } from '../../api';
+import { useFocusEffect } from '@react-navigation/native';
+import { customerAPI, getAPIErrorMessage, serviceAPI, staffAPI } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import ShopHeader from '../../components/shopowner/ShopHeader';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 const ServiceDetailScreen = ({ route, navigation }) => {
-    const { customer: initialCustomer, shopId } = route.params;
+    const { customer: initialCustomer, shopId, serviceId, type } = route.params;
     const { user } = useAuth();
+    
+    // Choose which API to use based on type
+    const activeAPI = type === 'services' ? serviceAPI : (type === 'staff' ? staffAPI : customerAPI);
+    const activeId = serviceId || initialCustomer?.id;
     const [customer, setCustomer] = useState(initialCustomer);
     const [loading, setLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const [shopDetails, setShopDetails] = useState(null);
 
     // Service Delivery Calendar state
@@ -56,6 +63,36 @@ const ServiceDetailScreen = ({ route, navigation }) => {
 
     // Payment Request Modal
     const [showPaymentRequestModal, setShowPaymentRequestModal] = useState(false);
+
+    const loadData = async (showLoading = true) => {
+        if (showLoading) setLoading(true);
+        try {
+            const response = await activeAPI.getById(shopId, activeId);
+            const updatedCustomer = response.data;
+            if (updatedCustomer) {
+                setCustomer(updatedCustomer);
+                setServiceRate(updatedCustomer.service_rate?.toString() || '');
+                setServiceRateType(updatedCustomer.service_rate_type || 'daily');
+                setServiceLog(updatedCustomer.service_log || {});
+            }
+        } catch (error) {
+            showToast(getAPIErrorMessage(error) || 'Failed to load details', 'error');
+        } finally {
+            if (showLoading) setLoading(false);
+        }
+    };
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await loadData(false);
+        setRefreshing(false);
+    };
+
+    useFocusEffect(
+        useCallback(() => {
+            loadData(false);
+        }, [shopId, activeId])
+    );
 
     useEffect(() => {
         calculateTotal();
@@ -110,8 +147,12 @@ const ServiceDetailScreen = ({ route, navigation }) => {
         );
     };
     const getDateStatus = (dateStr) => {
-        // Remove automatic logic, only return what is stored or null
-        return serviceLog[dateStr] || null;
+        const entry = serviceLog[dateStr];
+        if (!entry) return null;
+        if (typeof entry === 'object' && entry !== null) {
+            return entry.status;
+        }
+        return entry; // Legacy string
     };
 
     const calculateTotal = () => {
@@ -120,39 +161,62 @@ const ServiceDetailScreen = ({ route, navigation }) => {
             return;
         }
 
-        const rate = parseFloat(serviceRate);
+        const globalRate = parseFloat(serviceRate);
         const year = currentMonth.getFullYear();
         const monthNum = currentMonth.getMonth();
         const monthStr = (monthNum + 1).toString().padStart(2, '0');
         const daysInMonth = new Date(year, monthNum + 1, 0).getDate();
         const monthPrefix = `${year}-${monthStr}`;
 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         if (serviceRateType === 'monthly') {
             // Monthly: Start with full rate, subtract for explicit "absent" markings
             let absentCount = 0;
             Object.keys(serviceLog).forEach(dateStr => {
-                if (dateStr.startsWith(monthPrefix) && serviceLog[dateStr] === 'absent') {
+                if (dateStr.startsWith(monthPrefix) && getDateStatus(dateStr) === 'absent') {
                     absentCount++;
                 }
             });
             
-            const dailyRate = rate / daysInMonth;
+            const dailyRate = globalRate / daysInMonth;
             const reduction = absentCount * dailyRate;
-            setCalculatedTotal(Math.max(0, rate - reduction));
+            setCalculatedTotal(Math.max(0, globalRate - reduction));
         } else {
             // Daily/Hourly: Incremental total based on "present" (implicit or explicit)
-            let presentCount = 0;
+            let total = 0;
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateStr = `${year}-${monthStr}-${day.toString().padStart(2, '0')}`;
-                if (getDateStatus(dateStr) === 'present') {
-                    presentCount++;
+                const status = getDateStatus(dateStr);
+                
+                if (status === 'present') {
+                    const entryDate = new Date(dateStr);
+                    entryDate.setHours(0, 0, 0, 0);
+                    
+                    if (entryDate < today) {
+                        // Past day: use stored rate if available, else fallback to current customer.service_rate
+                        const entry = serviceLog[dateStr];
+                        const storedRate = (typeof entry === 'object' && entry !== null && entry.rate !== undefined) 
+                            ? entry.rate 
+                            : (customer.service_rate || globalRate); 
+                        total += storedRate;
+                    } else {
+                        // Today or future: use current global rate (input field value)
+                        total += globalRate;
+                    }
                 }
             }
-            setCalculatedTotal(presentCount * rate);
+            setCalculatedTotal(total);
         }
     };
 
     const handleSaveRateSettings = async () => {
+        if (!customer.is_verified) {
+            showToast('First Verify the customer before changes', 'error');
+            return;
+        }
+
         if (!serviceRate || isNaN(parseFloat(serviceRate))) {
             showToast('Please enter a valid numeric rate', 'error');
             return;
@@ -160,12 +224,44 @@ const ServiceDetailScreen = ({ route, navigation }) => {
 
         setIsSavingRate(true);
         try {
+            // Migration: 
+            // 1. Convert legacy strings to objects using previous rate
+            // 2. Update Today/Future entries to use the NEW rate
+            const migratedLog = { ...serviceLog };
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            Object.keys(migratedLog).forEach(dateStr => {
+                const entry = migratedLog[dateStr];
+                const entryDate = new Date(dateStr);
+                entryDate.setHours(0, 0, 0, 0);
+
+                if (entryDate >= today) {
+                    // Today or Future: ALWAYS use the new rate being saved
+                    if (typeof entry === 'object' && entry !== null) {
+                        migratedLog[dateStr] = { ...entry, rate: parseFloat(serviceRate) };
+                    } else if (typeof entry === 'string') {
+                        migratedLog[dateStr] = { status: entry, rate: parseFloat(serviceRate) };
+                    }
+                } else if (typeof entry === 'string') {
+                    // Past Legacy string: Use previous saved rate (customer.service_rate)
+                    // This "locks" the past price before the new one takes over
+                    migratedLog[dateStr] = {
+                        status: entry,
+                        rate: customer.service_rate || parseFloat(serviceRate)
+                    };
+                }
+                // Past objects stay as they are (preserving their historical rate)
+            });
+
             const updateData = {
                 service_rate: parseFloat(serviceRate),
-                service_rate_type: serviceRateType
+                service_rate_type: serviceRateType,
+                service_log: migratedLog
             };
-            await customerAPI.updateServiceData(shopId, customer.id, updateData);
+            await activeAPI.updateServiceData(shopId, customer.id, updateData);
             setCustomer(prev => ({ ...prev, ...updateData }));
+            setServiceLog(migratedLog);
             showToast('Rate settings saved successfully');
         } catch (error) {
             showToast(getAPIErrorMessage(error) || 'Failed to save rate', 'error');
@@ -175,6 +271,11 @@ const ServiceDetailScreen = ({ route, navigation }) => {
     };
 
     const toggleDateStatus = async (dateStr) => {
+        if (!customer.is_verified) {
+            showToast('First Verify the customer before changes', 'error');
+            return;
+        }
+
         // Restriction logic: ONLY allow editing the current date
         try {
             const isToday = new Date().toDateString() === new Date(dateStr).toDateString();
@@ -187,7 +288,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
             console.error('Error in toggleDateStatus restriction:', e);
         }
 
-        const currentStatus = serviceLog[dateStr];
+        const currentStatus = getDateStatus(dateStr);
         let newStatus = 'present';
         
         // Cycle: null -> present -> absent -> null
@@ -199,14 +300,16 @@ const ServiceDetailScreen = ({ route, navigation }) => {
         if (newStatus === null) {
             delete updatedLog[dateStr];
         } else {
-            updatedLog[dateStr] = newStatus;
+            updatedLog[dateStr] = {
+                status: newStatus,
+                rate: parseFloat(serviceRate)
+            };
         }
         setServiceLog(updatedLog);
 
         try {
-            await customerAPI.updateServiceData(shopId, customer.id, {
-                date: dateStr,
-                status: newStatus
+            await activeAPI.updateServiceData(shopId, customer.id, {
+                service_log: updatedLog
             });
         } catch (error) {
             showToast('Failed to sync calendar update', 'error');
@@ -359,7 +462,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                 phone: editPhone.trim(),
                 nickname: editNickname.trim() || null
             };
-            await customerAPI.update(shopId, customer.id, updateData);
+            await activeAPI.update(shopId, customer.id, updateData);
             
             showToast('Details updated successfully');
             setShowEditCustomerModal(false);
@@ -390,7 +493,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
 
     const handleSendVerificationWithData = async (phone, name) => {
         try {
-            const response = await customerAPI.sendVerification(shopId, customer.id);
+            const response = await activeAPI.sendVerification(shopId, customer.id);
             const link = response.data?.verification_link;
             if (link) {
                 const message = `Hello ${name},\nVerify your number: ${link}`;
@@ -405,7 +508,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
 
     const handleSendVerification = async () => {
         try {
-            const response = await customerAPI.sendVerification(shopId, customer.id);
+            const response = await activeAPI.sendVerification(shopId, customer.id);
             const link = response.data?.verification_link;
             if (link) {
                 const message = `Hello ${customer.name},\nVerify your number: ${link}`;
@@ -423,6 +526,33 @@ const ServiceDetailScreen = ({ route, navigation }) => {
         return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
     };
 
+    if (!customer && (loading || refreshing)) {
+        return (
+            <SafeAreaView style={styles.container} edges={['top']}>
+                <ShopHeader shopName={user?.shop_name || 'XMunim'} />
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color="#2563EB" />
+                    <Text style={{ marginTop: 12, color: '#6B7280' }}>Loading details...</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    if (!customer) {
+        return (
+            <SafeAreaView style={styles.container} edges={['top']}>
+                <ShopHeader shopName={user?.shop_name || 'XMunim'} />
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+                    <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
+                    <Text style={{ marginTop: 12, fontSize: 16, fontWeight: '700', color: '#111827' }}>Member Not Found</Text>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 20 }}>
+                        <Text style={{ color: '#2563EB', fontWeight: '600' }}>Go Back</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             <View style={{ flex: 1 }}>
@@ -433,6 +563,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollViewContent}
                     showsVerticalScrollIndicator={false}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
                 >
                     {/* Top Row: Back & Title */}
                     <View style={styles.backRow}>
@@ -611,6 +742,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                         serviceRateType: serviceRateType
                     }}
                     transactions={[]} // Can be fetched if needed, passing empty for now to match prop signature
+                    activeAPI={activeAPI}
                     showToast={showToast}
                     renderToast={renderToast}
                 />
@@ -815,7 +947,7 @@ const styles = StyleSheet.create({
     },
 });
 
-const PaymentRequestModal = ({ visible, onClose, customer, transactions, showToast, renderToast }) => {
+const PaymentRequestModal = ({ visible, onClose, customer, transactions, activeAPI, showToast, renderToast }) => {
     const [paymentRequestTab, setPaymentRequestTab] = useState('sendNow');
     const [requestType, setRequestType] = useState('Payment Due Reminder');
     const [sendVia, setSendVia] = useState('Push Notification');
@@ -869,7 +1001,7 @@ const PaymentRequestModal = ({ visible, onClose, customer, transactions, showToa
         if (!customer) return;
         setLoadingHistory(true);
         try {
-            const response = await customerAPI.getCustomerNotifications(customer.shop_id, customer.id);
+            const response = await activeAPI.getCustomerNotifications(customer.shop_id, customer.id);
             setNotiHistory(response.data || []);
         } catch (error) {
             console.error('Error fetching history:', error);
@@ -1344,7 +1476,7 @@ const PaymentRequestModal = ({ visible, onClose, customer, transactions, showToa
                                                             await Linking.openURL(url);
                                                         }
 
-                                                        await customerAPI.notifyPayment(customer.shop_id, customer.id, payload);
+                                                        await activeAPI.notifyPayment(customer.shop_id, customer.id, payload);
                                                         showToast('Notification request logged successfully');
                                                         fetchHistory();
                                                         onClose();
@@ -1540,7 +1672,7 @@ const PaymentRequestModal = ({ visible, onClose, customer, transactions, showToa
                                                             auto_reminder_method: autoReminderMethod,
                                                             auto_reminder_message: autoReminderMessage
                                                         };
-                                                        await customerAPI.updateCustomer(customer.shop_id, customer.id, updateData);
+                                                        await activeAPI.update(customer.shop_id, customer.id, updateData);
                                                         showToast('Auto reminder settings saved successfully!');
                                                     } catch (error) {
                                                         const errorMsg = error.response?.data?.detail || 'Failed to save settings';
