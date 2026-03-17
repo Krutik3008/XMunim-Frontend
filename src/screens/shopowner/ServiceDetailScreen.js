@@ -24,6 +24,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { customerAPI, getAPIErrorMessage, serviceAPI, staffAPI } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import ShopHeader from '../../components/shopowner/ShopHeader';
+import ShopBottomNav from '../../components/shopowner/ShopBottomNav';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -747,6 +748,9 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                     renderToast={renderToast}
                 />
 
+                {/* Bottom Navigation */}
+                <ShopBottomNav activeTab="customers" />
+
                 {renderToast()}
             </View>
         </SafeAreaView>
@@ -756,7 +760,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8F9FA' },
     scrollView: { flex: 1 },
-    scrollViewContent: { padding: 16, paddingBottom: 40 },
+    scrollViewContent: { padding: 16, paddingBottom: 120 },
     backRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
     backButton: { padding: 4 },
     pageTitle: { marginLeft: 12 },
