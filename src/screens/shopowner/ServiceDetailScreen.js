@@ -72,6 +72,14 @@ const ServiceDetailScreen = ({ route, navigation }) => {
             const updatedCustomer = response.data;
             if (updatedCustomer) {
                 setCustomer(updatedCustomer);
+
+                // Fetch shop details for branding
+                try {
+                    const shopRes = await shopAPI.getDashboard(shopId);
+                    setShopDetails(shopRes.data?.shop);
+                } catch (e) {
+                    console.log('Failed to load shop details:', e);
+                }
                 setServiceRate(updatedCustomer.service_rate?.toString() || '');
                 setServiceRateType(updatedCustomer.service_rate_type || 'daily');
                 setServiceLog(updatedCustomer.service_log || {});
@@ -500,7 +508,8 @@ const ServiceDetailScreen = ({ route, navigation }) => {
             const response = await activeAPI.sendVerification(shopId, customer.id);
             const link = response.data?.verification_link;
             if (link) {
-                const message = `Hello ${name},\nVerify your number: ${link}`;
+                const shopName = shopDetails?.name || user?.shop_name || 'our shop';
+                const message = `Hello ${name || 'Customer'},\n\nYou have been added to ${shopName}'s digital ledger on XMunim. Please verify your number to get started: ${link}\n\nThank you!`;
                 const url = `whatsapp://send?phone=91${phone}&text=${encodeURIComponent(message)}`;
                 await Linking.openURL(url).catch(() => Linking.openURL(`https://wa.me/91${phone}?text=${encodeURIComponent(message)}`));
                 showToast('Verification link sent');
@@ -515,7 +524,8 @@ const ServiceDetailScreen = ({ route, navigation }) => {
             const response = await activeAPI.sendVerification(shopId, customer.id);
             const link = response.data?.verification_link;
             if (link) {
-                const message = `Hello ${customer.name},\nVerify your number: ${link}`;
+                const shopName = shopDetails?.name || user?.shop_name || 'our shop';
+                const message = `Hello ${customer.name},\n\nYou have been added to ${shopName}'s digital ledger on XMunim. Please verify your number to get started: ${link}\n\nThank you!`;
                 const url = `whatsapp://send?phone=91${customer.phone}&text=${encodeURIComponent(message)}`;
                 await Linking.openURL(url).catch(() => Linking.openURL(`https://wa.me/91${customer.phone}?text=${encodeURIComponent(message)}`));
                 showToast('Verification link sent');
@@ -533,7 +543,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
     if (!customer && (loading || refreshing)) {
         return (
             <SafeAreaView style={styles.container} edges={['top']}>
-                <ShopHeader shopName={user?.shop_name || 'XMunim'} />
+                <ShopHeader shopName={shopDetails?.name || user?.shop_name || 'XMunim'} />
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <ActivityIndicator size="large" color="#2563EB" />
                     <Text style={{ marginTop: 12, color: '#6B7280' }}>Loading details...</Text>
@@ -545,7 +555,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
     if (!customer) {
         return (
             <SafeAreaView style={styles.container} edges={['top']}>
-                <ShopHeader shopName={user?.shop_name || 'XMunim'} />
+                <ShopHeader shopName={shopDetails?.name || user?.shop_name || 'XMunim'} />
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
                     <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
                     <Text style={{ marginTop: 12, fontSize: 16, fontWeight: '700', color: '#111827' }}>Member Not Found</Text>
@@ -561,7 +571,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
         <SafeAreaView style={styles.container} edges={['top']}>
             <View style={{ flex: 1 }}>
                 {/* Header */}
-                <ShopHeader shopName={user?.shop_name || 'XMunim'} />
+                <ShopHeader shopName={shopDetails?.name || user?.shop_name || 'XMunim'} />
 
                 <ScrollView
                     style={styles.scrollView}
