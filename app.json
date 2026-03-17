@@ -3,7 +3,7 @@
     "name": "XMunimApp",
     "slug": "xmunimapp",
     "scheme": "xmunim",
-    "owner": "krutik3011",
+    "owner": "krutik3008",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon-v3.png",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.krutik3011.xmunimapp",
+      "bundleIdentifier": "com.krutik3008.xmunimapp",
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
@@ -28,7 +28,7 @@
         "color": "#304FFE"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.krutik3011.xmunimapp",
+      "package": "com.krutik3008.xmunimapp",
       "softwareKeyboardLayoutMode": "pan",
       "googleServicesFile": "./google-services.json",
       "intentFilters": [
@@ -72,7 +72,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "4102b7a0-b597-43d0-a122-63963345f41b"
+        "projectId": "be93dc49-fcae-4503-8054-321856c0f086"
       }
     }
   }
