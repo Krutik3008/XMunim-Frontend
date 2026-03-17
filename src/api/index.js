@@ -220,6 +220,14 @@ export const serviceAPI = {
     // Send verification link
     sendVerification: (shopId, serviceId) =>
         api.post(`/shops/${shopId}/services/${serviceId}/send-verification`),
+
+    // Send push notification for payment request
+    notifyPayment: (shopId, serviceId, data) =>
+        api.post(`/shops/${shopId}/services/${serviceId}/notify-payment`, data),
+
+    // Get notification history for a specific service
+    getCustomerNotifications: (shopId, serviceId) =>
+        api.get(`/shops/${shopId}/services/${serviceId}/notifications`),
 };
 
 // ============ STAFF APIs (Dedicated collection for salaried/hourly staff) ============
