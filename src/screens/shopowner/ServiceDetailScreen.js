@@ -1871,7 +1871,7 @@ const modalStyles = StyleSheet.create({
         backgroundColor: '#fff',
         marginHorizontal: 16,
         marginTop: 16,
-        marginBottom: 16,
+        marginBottom: 60,
         borderRadius: 16,
         padding: 16,
         borderWidth: 1,
@@ -1953,6 +1953,7 @@ const modalStyles = StyleSheet.create({
         paddingVertical: 14,
         borderRadius: 10,
         gap: 10,
+        marginBottom: 40,
     },
     paymentSendBtnText: {
         color: '#fff',
