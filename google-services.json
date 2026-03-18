@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "330832104184",
-    "project_id": "xmunim-58597",
-    "storage_bucket": "xmunim-58597.firebasestorage.app"
+    "project_number": "68675997873",
+    "project_id": "xmunim-89cb7",
+    "storage_bucket": "xmunim-89cb7.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:330832104184:android:8ce1cda62ada839e2e090d",
+        "mobilesdk_app_id": "1:68675997873:android:74f176e2f3875c40aa1290",
         "android_client_info": {
-          "package_name": "com.krutik3011.xmunimapp"
+          "package_name": "com.krutik3008.xmunimapp"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyABcvtNRXB4DuPnwyvTs85orZ-FJQlAfDw"
+          "current_key": "AIzaSyA95QH1DtD-QpSmFcSCLACsklwK1x2tC4k"
         }
       ],
       "services": {
