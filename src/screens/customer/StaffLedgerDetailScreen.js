@@ -8,7 +8,8 @@ import {
     ActivityIndicator,
     Animated,
     Dimensions,
-    Platform
+    Platform,
+    RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +17,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import CustomerHeader from '../../components/customer/CustomerHeader';
 import { colors } from '../../theme';
+import { customerDashboardAPI } from '../../api';
 
 const StaffLedgerDetailScreen = () => {
     const navigation = useNavigation();
@@ -26,34 +28,90 @@ const StaffLedgerDetailScreen = () => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [serviceLog, setServiceLog] = useState(staff?.service_log || {});
     const [calculatedTotal, setCalculatedTotal] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+
+    const loadData = async (showLoading = true) => {
+        if (showLoading) setLoading(true);
+        try {
+            const response = await customerDashboardAPI.getLedger();
+            const ledger = response.data || [];
+            // Find the current staff in the ledger
+            const updatedItem = ledger.find(item => item.customer?.id === (staff?.id || route.params.customer?.id));
+            if (updatedItem && updatedItem.customer) {
+                setServiceLog(updatedItem.customer.service_log || {});
+            }
+        } catch (error) {
+            console.log('Failed to refresh data:', error);
+        } finally {
+            if (showLoading) setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    useEffect(() => {
+        loadData(false);
+    }, []);
 
     useEffect(() => {
         calculateTotal();
     }, [serviceLog, staff?.service_rate, staff?.service_rate_type, currentMonth]);
 
+    const getDateStatus = (dateStr) => {
+        const entry = serviceLog[dateStr];
+        if (!entry) return null;
+        if (typeof entry === 'object' && entry !== null) {
+            return entry.status;
+        }
+        return entry; // Legacy string
+    };
+
     const calculateTotal = () => {
-        const rate = parseFloat(staff?.service_rate || 0);
-        if (isNaN(rate)) {
+        const savedRate = staff?.service_rate;
+        const savedRateType = staff?.service_rate_type;
+
+        if (savedRate === undefined || savedRate === null || isNaN(parseFloat(savedRate))) {
             setCalculatedTotal(0);
             return;
         }
 
+        const globalRate = parseFloat(savedRate);
         const year = currentMonth.getFullYear();
-        const month = (currentMonth.getMonth() + 1).toString().padStart(2, '0');
-        const monthPrefix = `${year}-${month}`;
+        const monthNum = currentMonth.getMonth();
+        const monthStr = (monthNum + 1).toString().padStart(2, '0');
+        const daysInMonth = new Date(year, monthNum + 1, 0).getDate();
+        const monthPrefix = `${year}-${monthStr}`;
 
-        let presentCount = 0;
-        Object.keys(serviceLog).forEach(dateStr => {
-            if (dateStr.startsWith(monthPrefix) && serviceLog[dateStr] === 'present') {
-                presentCount++;
-            }
-        });
-
-        if (staff?.service_rate_type === 'daily' || staff?.service_rate_type === 'hourly') {
-            setCalculatedTotal(presentCount * rate);
+        if (savedRateType === 'monthly') {
+            // Monthly: Start with full rate, subtract for explicit "absent" markings
+            let absentCount = 0;
+            Object.keys(serviceLog).forEach(dateStr => {
+                if (dateStr.startsWith(monthPrefix) && getDateStatus(dateStr) === 'absent') {
+                    absentCount++;
+                }
+            });
+            
+            const dailyRate = globalRate / daysInMonth;
+            const reduction = absentCount * dailyRate;
+            setCalculatedTotal(Math.max(0, globalRate - reduction));
         } else {
-            setCalculatedTotal(rate); // Monthly rate is fixed
+            // Daily/Hourly: Incremental total based on "present" (implicit or explicit)
+            let total = 0;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${monthStr}-${day.toString().padStart(2, '0')}`;
+                const status = getDateStatus(dateStr);
+                
+                if (status === 'present') {
+                    // Try to use stored rate if available, else fallback to current staff.service_rate
+                    const entry = serviceLog[dateStr];
+                    const storedRate = (typeof entry === 'object' && entry !== null && entry.rate !== undefined) 
+                        ? entry.rate 
+                        : globalRate; 
+                    total += storedRate;
+                }
+            }
+            setCalculatedTotal(total);
         }
     };
 
@@ -115,7 +173,7 @@ const StaffLedgerDetailScreen = () => {
                         }
 
                         const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                        const status = serviceLog[dateStr];
+                        const status = getDateStatus(dateStr);
                         const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
 
                         let cellBg = '#F9FAFB';
@@ -171,6 +229,9 @@ const StaffLedgerDetailScreen = () => {
                 <ScrollView 
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={() => loadData(false)} />
+                    }
                 >
                     <View style={styles.headerContent}>
                         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
