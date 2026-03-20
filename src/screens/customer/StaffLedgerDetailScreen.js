@@ -9,8 +9,16 @@ import {
     Animated,
     Dimensions,
     Platform,
-    RefreshControl
+    RefreshControl,
+    Linking,
+    Alert,
+    Modal,
+    TextInput,
+    KeyboardAvoidingView,
+    TouchableWithoutFeedback,
+    Keyboard
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -32,6 +40,11 @@ const StaffLedgerDetailScreen = () => {
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+    const [showPaymentRequestModal, setShowPaymentRequestModal] = useState(false);
+    const [requestType, setRequestType] = useState('Salary Payment');
+    const [reminderMessage, setReminderMessage] = useState('');
+    const [isSending, setIsSending] = useState(false);
+    const [showRequestTypeDropdown, setShowRequestTypeDropdown] = useState(false);
 
     const loadData = async (showLoading = true) => {
         if (showLoading) setLoading(true);
@@ -92,7 +105,7 @@ const StaffLedgerDetailScreen = () => {
                     absentCount++;
                 }
             });
-            
+
             const dailyRate = globalRate / daysInMonth;
             const reduction = absentCount * dailyRate;
             setCalculatedTotal(Math.max(0, globalRate - reduction));
@@ -102,13 +115,13 @@ const StaffLedgerDetailScreen = () => {
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateStr = `${year}-${monthStr}-${day.toString().padStart(2, '0')}`;
                 const status = getDateStatus(dateStr);
-                
+
                 if (status === 'present') {
                     // Try to use stored rate if available, else fallback to current staff.service_rate
                     const entry = serviceLog[dateStr];
-                    const storedRate = (typeof entry === 'object' && entry !== null && entry.rate !== undefined) 
-                        ? entry.rate 
-                        : globalRate; 
+                    const storedRate = (typeof entry === 'object' && entry !== null && entry.rate !== undefined)
+                        ? entry.rate
+                        : globalRate;
                     total += storedRate;
                 }
             }
@@ -135,6 +148,184 @@ const StaffLedgerDetailScreen = () => {
             }
         }
     };
+
+    const handleSendPaymentRequest = async () => {
+        if (!staff?.phone) {
+            Alert.alert('Error', 'Staff phone number not found.');
+            return;
+        }
+
+        const amount = calculatedTotal.toFixed(2);
+        const shopName = shopDetails?.name || 'Our Shop';
+        const staffName = staff?.name || 'Staff';
+        const monthName = currentMonth.toLocaleString('default', { month: 'long' });
+
+        let messageBody = '';
+        let title = 'Payment Request';
+
+        if (requestType === 'Salary Payment') {
+            title = 'Salary Payment Request';
+            messageBody = `Salary request for ${monthName} ${currentMonth.getFullYear()} - ₹${amount}`;
+        } else if (requestType === 'Advance Payment') {
+            title = 'Advance Payment Request';
+            messageBody = `Advance request of ₹${amount} by ${staffName}`;
+        } else {
+            title = 'Bonus Payment Request';
+            messageBody = `Bonus request for ${monthName} ${currentMonth.getFullYear()} - ₹${amount}`;
+        }
+
+        if (reminderMessage.trim()) {
+            messageBody += `\nNote: ${reminderMessage}`;
+        }
+
+        // We use the WhatsApp fallback since the customer->shop owner push notification 
+        // endpoint does not exist yet for staff requests. This maintains existing functionality 
+        // while changing the UI style to match the business side per user request.
+        const fullMessage = `Hello Shop Owner,\n\n${title}\n${messageBody}\n\nPlease check the XMunim app.`;
+        const url = `whatsapp://send?phone=91${shopDetails?.phone || staff.phone}&text=${encodeURIComponent(fullMessage)}`;
+
+        setIsSending(true);
+        try {
+            const supported = await Linking.canOpenURL(url);
+            if (supported) {
+                await Linking.openURL(url);
+            } else {
+                await Linking.openURL(`https://wa.me/91${shopDetails?.phone || staff.phone}?text=${encodeURIComponent(fullMessage)}`);
+            }
+            setShowPaymentRequestModal(false);
+        } catch (error) {
+            Alert.alert('Error', 'Failed to open WhatsApp');
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    const handlePayNow = () => {
+        const upiId = shopDetails?.upi_id;
+        const shopName = shopDetails?.name || 'Shop';
+
+        if (!upiId) {
+            Alert.alert('Payment Error', 'This shop has not set up a UPI ID for payments yet.');
+            return;
+        }
+
+        const amount = calculatedTotal.toFixed(2);
+        const note = `Payment for ${staff?.name || 'Staff'} - ${currentMonth.toLocaleString('default', { month: 'long' })} ${currentMonth.getFullYear()}`;
+
+        const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(shopName)}&am=${amount}&cu=INR&tn=${encodeURIComponent(note)}`;
+
+        Linking.canOpenURL(upiUrl).then(supported => {
+            if (supported) {
+                Linking.openURL(upiUrl);
+            } else {
+                Alert.alert('Payment Error', 'No UPI app found. Please install a UPI app.');
+            }
+        }).catch(err => {
+            console.error('An error occurred', err);
+            Alert.alert('Payment Error', 'Could not open UPI app.');
+        });
+    };
+
+    const renderPaymentRequestModal = () => (
+        <Modal
+            visible={showPaymentRequestModal}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowPaymentRequestModal(false)}
+        >
+            <KeyboardAvoidingView
+                style={styles.modalOverlay}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            >
+                <TouchableWithoutFeedback onPress={() => { setShowRequestTypeDropdown(false); Keyboard.dismiss(); }}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Ionicons name="time-outline" size={22} color="#2563EB" />
+                                <Text style={styles.modalTitle}>Payment Request</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowPaymentRequestModal(false)}>
+                                <Ionicons name="close-circle-outline" size={26} color="#6B7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
+                            <View style={styles.modalCard}>
+                                <Text style={styles.modalCardLabel}>Staff Member</Text>
+                                <Text style={styles.modalCardValue}>{staff?.name || 'N/A'}</Text>
+                                <View style={{ height: 12 }} />
+                                <Text style={styles.modalCardLabel}>Calculated Amount</Text>
+                                <Text style={[styles.modalCardValue, { color: '#2563EB', fontSize: 20 }]}>₹{calculatedTotal.toFixed(2)}</Text>
+                            </View>
+
+                            <View style={styles.formGroup}>
+                                <Text style={styles.modalLabel}>Request Type</Text>
+                                <TouchableOpacity
+                                    style={styles.dropdownTrigger}
+                                    onPress={() => setShowRequestTypeDropdown(!showRequestTypeDropdown)}
+                                >
+                                    <Text style={styles.dropdownValue}>{requestType}</Text>
+                                    <Ionicons name={showRequestTypeDropdown ? "chevron-up" : "chevron-down"} size={20} color="#6B7280" />
+                                </TouchableOpacity>
+
+                                {showRequestTypeDropdown && (
+                                    <View style={styles.dropdownMenu}>
+                                        {['Salary Payment', 'Advance Payment', 'Bonus Payment'].map((type) => (
+                                            <TouchableOpacity
+                                                key={type}
+                                                style={[styles.dropdownItem, requestType === type && styles.dropdownItemActive]}
+                                                onPress={() => {
+                                                    setRequestType(type);
+                                                    setShowRequestTypeDropdown(false);
+                                                }}
+                                            >
+                                                <Text style={[styles.dropdownItemText, requestType === type && styles.dropdownItemTextActive]}>{type}</Text>
+                                                {requestType === type && <Ionicons name="checkmark" size={18} color="#2563EB" />}
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                )}
+                            </View>
+
+                            <View style={styles.formGroup}>
+                                <Text style={styles.modalLabel}>Extra Note (Optional)</Text>
+                                <TextInput
+                                    style={styles.textInput}
+                                    placeholder="Add a message for the staff member..."
+                                    value={reminderMessage}
+                                    onChangeText={setReminderMessage}
+                                    multiline
+                                    numberOfLines={3}
+                                />
+                            </View>
+
+                            <TouchableOpacity
+                                onPress={handleSendPaymentRequest}
+                                disabled={isSending}
+                                activeOpacity={0.8}
+                            >
+                                <LinearGradient
+                                    colors={isSending ? ['#9CA3AF', '#6B7280'] : ['#3B82F6', '#2563EB']}
+                                    style={styles.sendButton}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                >
+                                    {isSending ? (
+                                        <ActivityIndicator color="#fff" size="small" />
+                                    ) : (
+                                        <>
+                                            <Ionicons name="paper-plane-outline" size={20} color="#fff" style={{ marginLeft: 8 }} />
+                                            <Text style={styles.sendButtonText}>Send Notification</Text>
+                                        </>
+                                    )}
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </View>
+                </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
+        </Modal>
+    );
 
     const renderCalendar = () => {
         const year = currentMonth.getFullYear();
@@ -212,6 +403,24 @@ const StaffLedgerDetailScreen = () => {
                     <Text style={styles.rateInfoText}>
                         Rate: ₹{staff?.service_rate || 0} / {staff?.service_rate_type || 'day'}
                     </Text>
+
+                    {calculatedTotal > 0 && (
+                        <TouchableOpacity
+                            style={{ marginTop: 15 }}
+                            onPress={() => setShowPaymentRequestModal(true)}
+                            activeOpacity={0.8}
+                        >
+                            <LinearGradient
+                                colors={['#3B82F6', '#2563EB']}
+                                style={styles.paymentRequestBtn}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                            >
+                                <Ionicons name="time-outline" size={20} color="#fff" />
+                                <Text style={styles.paymentRequestText}>Payment Request</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
         );
@@ -227,7 +436,7 @@ const StaffLedgerDetailScreen = () => {
                     setShowRoleDropdown={setShowRoleDropdown}
                     handleRoleSwitch={handleRoleSwitch}
                 />
-                <ScrollView 
+                <ScrollView
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                     refreshControl={
@@ -279,10 +488,11 @@ const StaffLedgerDetailScreen = () => {
                         {renderCalendar()}
                     </View>
                 </ScrollView>
-                <CustomerBottomNav 
-                    activeTab="ledger" 
-                    setActiveTab={(tab) => navigation.navigate('CustomerDashboard', { tab })} 
+                <CustomerBottomNav
+                    activeTab="ledger"
+                    setActiveTab={(tab) => navigation.navigate('CustomerDashboard', { tab })}
                 />
+                {renderPaymentRequestModal()}
             </SafeAreaView>
         </View>
     );
@@ -306,8 +516,8 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#F3F4F6',
     },
-    backButton: { 
-        marginRight: 10, 
+    backButton: {
+        marginRight: 10,
         marginLeft: -10,
     },
     headerTitle: {
@@ -429,6 +639,142 @@ const styles = StyleSheet.create({
         color: '#666',
         marginTop: 4,
         fontStyle: 'italic',
+    },
+    paymentRequestBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+        borderRadius: 10,
+        gap: 8,
+    },
+    paymentRequestText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: '#F3F4F6',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 20,
+        maxHeight: '80%',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#111827',
+        marginLeft: 8,
+    },
+    modalCard: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    modalCardLabel: {
+        fontSize: 12,
+        color: '#6B7280',
+        fontWeight: '500',
+    },
+    modalCardValue: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#111827',
+        marginTop: 2,
+    },
+    modalLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#374151',
+        marginBottom: 8,
+    },
+    formGroup: {
+        marginBottom: 20,
+    },
+    dropdownTrigger: {
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 12,
+        padding: 12,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    dropdownValue: {
+        fontSize: 15,
+        color: '#111827',
+    },
+    dropdownMenu: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        marginTop: 8,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        overflow: 'hidden',
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+    dropdownItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+    },
+    dropdownItemActive: {
+        backgroundColor: '#EFF6FF',
+    },
+    dropdownItemText: {
+        fontSize: 14,
+        color: '#374151',
+    },
+    dropdownItemTextActive: {
+        color: '#2563EB',
+        fontWeight: '600',
+    },
+    textInput: {
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 12,
+        padding: 12,
+        fontSize: 15,
+        textAlignVertical: 'top',
+        minHeight: 80,
+    },
+    sendButton: {
+        borderRadius: 12,
+        padding: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 10,
+        marginBottom: 20,
+    },
+    sendButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
+        marginLeft: 8,
     },
 });
 
