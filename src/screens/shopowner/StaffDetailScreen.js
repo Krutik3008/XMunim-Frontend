@@ -547,7 +547,7 @@ const StaffDetailScreen = ({ route, navigation }) => {
             const link = response.data?.verification_link;
             if (link) {
                 const shopName = shopDetails?.name || user?.shop_name || 'our shop';
-                const message = `Hello ${name || 'Staff'},\n\nYou have been added to ${shopName}'s digital ledger on XMunim. Please verify your number to get started: ${link}\n\nThank you!`;
+                const message = `Hello ${name || 'Member'},\n\nYou have been added to ${shopName}'s digital ledger on XMunim. Please verify your number to get started: ${link}\n\nThank you!`;
                 const url = `whatsapp://send?phone=91${phone}&text=${encodeURIComponent(message)}`;
                 await Linking.openURL(url).catch(() => Linking.openURL(`https://wa.me/91${phone}?text=${encodeURIComponent(message)}`));
                 showToast('Verification link sent');

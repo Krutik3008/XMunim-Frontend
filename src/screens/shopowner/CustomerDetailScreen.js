@@ -554,8 +554,8 @@ const CustomerDetailScreen = ({ route, navigation }) => {
             const link = response.data?.verification_link;
 
             if (link) {
-                const shopName = shopDetails?.name || 'our store';
-                const message = `Hello ${name || 'Customer'},\n\nWelcome to Shop ${shopName}! We've added you to our digital ledger on XMunim.\n\nPlease click the link below to verify your number and activate your account:\n${link}\n\nThank you!`;
+                const shopName = shopDetails?.name || 'our shop';
+                const message = `Hello ${name || 'Customer'},\n\nYou have been added to ${shopName}'s digital ledger on XMunim. Please verify your number to get started: ${link}\n\nThank you!`;
 
                 const url = `whatsapp://send?phone=91${phone}&text=${encodeURIComponent(message)}`;
                 const canOpen = await Linking.canOpenURL(url);
