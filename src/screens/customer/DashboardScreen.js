@@ -169,6 +169,59 @@ const CustomerDashboardScreen = () => {
         return `${day} ${month}, ${time}`;
     };
 
+    const calculateServiceDues = useCallback((item) => {
+        if (!item.customer) return 0;
+        
+        // For regular customers, just return the balance
+        if (item.type !== 'services') {
+            return item.customer.balance || 0;
+        }
+
+        const serviceLog = item.customer.service_log || {};
+        const globalRate = item.customer.service_rate || 0;
+        const rateType = item.customer.service_rate_type || 'daily';
+        
+        const now = new Date();
+        const year = now.getFullYear();
+        const monthNum = now.getMonth();
+        const monthStr = (monthNum + 1).toString().padStart(2, '0');
+        const daysInMonth = new Date(year, monthNum + 1, 0).getDate();
+        const monthPrefix = `${year}-${monthStr}`;
+
+        let totalForMonth = 0;
+
+        if (rateType === 'monthly') {
+            let absentCount = 0;
+            Object.keys(serviceLog).forEach(dateStr => {
+                if (dateStr.startsWith(monthPrefix)) {
+                    const entry = serviceLog[dateStr];
+                    const status = typeof entry === 'string' ? entry : entry?.status;
+                    if (status === 'absent') absentCount++;
+                }
+            });
+            const dailyRate = globalRate / daysInMonth;
+            totalForMonth = Math.max(0, globalRate - (absentCount * dailyRate));
+        } else {
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${monthStr}-${day.toString().padStart(2, '0')}`;
+                const entry = serviceLog[dateStr];
+                const status = typeof entry === 'string' ? entry : entry?.status;
+                
+                if (status === 'present') {
+                    const storedRate = (typeof entry === 'object' && entry !== null && entry.rate !== undefined)
+                        ? entry.rate
+                        : globalRate;
+                    totalForMonth += storedRate;
+                }
+            }
+        }
+        
+        // Balance is stored such that negative means customer owes money.
+        // totalForMonth is what the customer owes for current period.
+        // So total dues = -totalForMonth + balance
+        return (item.customer.balance || 0) - totalForMonth;
+    }, []);
+
     // Calculate summary stats
     const getSummaryStats = () => {
         const totalShops = ledgerData.length;
@@ -176,7 +229,7 @@ const CustomerDashboardScreen = () => {
         let netBalance = 0;
 
         ledgerData.forEach(item => {
-            const balance = item.customer?.balance || 0;
+            const balance = calculateServiceDues(item);
             if (balance < 0) {
                 totalOwed += Math.abs(balance);
             }
@@ -599,19 +652,20 @@ const CustomerDashboardScreen = () => {
                                                 if (type === 'staff' || type === 'services') {
                                                     const rate = item.customer?.service_rate || 0;
                                                     const rateType = item.customer?.service_rate_type || 'daily';
+                                                    const calculatedBalance = type === 'services' ? calculateServiceDues(item) : 0;
                                                     
                                                     return (
                                                         <View style={styles.ledgerBalanceRow}>
-                                                            <View style={{ flexDirection: 'row', gap: 6 }}>
-                                                                <View style={[styles.statusBadge, { backgroundColor: '#F3F4F6' }]}>
-                                                                    <Text style={[styles.statusBadgeText, { color: '#4B5563' }]}>
-                                                                        {type === 'staff' ? 'Staff' : 'Service'}
-                                                                    </Text>
-                                                                </View>
-                                                                <View style={[styles.statusBadge, { backgroundColor: '#EBF5FF' }]}>
-                                                                    <Text style={[styles.statusBadgeText, { color: '#3B82F6' }]}>
-                                                                        {rateType.charAt(0).toUpperCase() + rateType.slice(1)}
-                                                                    </Text>
+                                                                <View style={{ flexDirection: 'row', gap: 6 }}>
+                                                                    <View style={[styles.statusBadge, { backgroundColor: '#F3F4F6' }]}>
+                                                                        <Text style={[styles.statusBadgeText, { color: '#4B5563' }]}>
+                                                                            {type === 'staff' ? 'Staff' : 'Service'}
+                                                                        </Text>
+                                                                    </View>
+                                                                    <View style={[styles.statusBadge, { backgroundColor: '#EBF5FF' }]}>
+                                                                        <Text style={[styles.statusBadgeText, { color: '#3B82F6' }]}>
+                                                                            {rateType.charAt(0).toUpperCase() + rateType.slice(1)}
+                                                                        </Text>
                                                                 </View>
                                                             </View>
                                                         </View>
@@ -692,16 +746,17 @@ const CustomerDashboardScreen = () => {
 
     // UPI Payment Handler
     const handlePayNow = async (item) => {
-        const upiId = item.shop?.upi_id;
-        const shopName = item.shop?.name || 'Shop';
-        const amount = Math.abs(item.customer?.balance || 0).toFixed(2);
+        const upiId = item.customer?.upi_id || item.shop?.upi_id;
+        const name = item.customer?.name || item.shop?.name || 'Shop';
+        const balance = calculateServiceDues(item);
+        const amount = Math.abs(balance).toFixed(2);
 
         if (!upiId) {
-            showToast('UPI not available for this shop');
+            showToast('UPI ID not available for this ' + (item.type === 'customer' ? 'shop' : 'member'));
             return;
         }
 
-        const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(shopName)}&am=${amount}&cu=INR&tn=${encodeURIComponent(`Payment to ${shopName}`)}`;
+        const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=${encodeURIComponent(`Payment for ${name}`)}`;
 
         try {
             const supported = await Linking.canOpenURL(upiUrl);
@@ -747,7 +802,10 @@ const CustomerDashboardScreen = () => {
             );
         }
 
-        const pendingPayments = ledgerData.filter(item => (item.customer?.balance || 0) < 0);
+        const pendingPayments = ledgerData.map(item => ({
+            ...item,
+            calculatedBalance: calculateServiceDues(item)
+        })).filter(item => item.calculatedBalance < 0 && item.type !== 'staff');
 
         return (
             <ScrollView style={styles.tabContent} contentContainerStyle={{ paddingBottom: (showShopFilterDropdown || showTypeFilterDropdown) ? 100 : 80 }}>
@@ -757,20 +815,26 @@ const CustomerDashboardScreen = () => {
 
                 {pendingPayments.length > 0 ? (
                     <View style={styles.pendingList}>
-                        {pendingPayments.map((item, index) => (
-                            <View key={index} style={styles.paymentCard}>
-                                <View style={styles.paymentCardContent}>
-                                    <View style={styles.paymentInfo}>
-                                        <Text style={styles.paymentShopName}>{item.shop?.name}</Text>
-                                        <Text style={styles.paymentShopLocation}>{item.shop?.location}</Text>
-                                        <Text style={styles.paymentOweText}>Dues: ₹{Math.abs(item.customer?.balance || 0).toFixed(2)}</Text>
+                        {pendingPayments.map((item, index) => {
+                            const isService = item.type === 'services';
+                            const title = isService ? item.customer?.name : item.shop?.name;
+                            const subtitle = isService ? `Service • ${item.shop?.name}` : item.shop?.location;
+
+                            return (
+                                <View key={index} style={styles.paymentCard}>
+                                    <View style={styles.paymentCardContent}>
+                                        <View style={styles.paymentInfo}>
+                                            <Text style={styles.paymentShopName}>{title}</Text>
+                                            <Text style={styles.paymentShopLocation}>{subtitle}</Text>
+                                            <Text style={styles.paymentOweText}>Dues: ₹{Math.abs(item.calculatedBalance || 0).toFixed(2)}</Text>
+                                        </View>
+                                        <TouchableOpacity style={styles.paymentPayBtn} onPress={() => handlePayNow(item)}>
+                                            <Text style={styles.paymentPayBtnText}>Pay Now</Text>
+                                        </TouchableOpacity>
                                     </View>
-                                    <TouchableOpacity style={styles.paymentPayBtn} onPress={() => handlePayNow(item)}>
-                                        <Text style={styles.paymentPayBtnText}>Pay Now</Text>
-                                    </TouchableOpacity>
                                 </View>
-                            </View>
-                        ))}
+                            );
+                        })}
                     </View>
                 ) : (
                     <View style={styles.pendingPaymentsCard}>
