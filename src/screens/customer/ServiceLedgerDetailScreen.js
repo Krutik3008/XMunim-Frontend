@@ -9,10 +9,13 @@ import {
     Animated,
     Dimensions,
     Platform,
-    RefreshControl
+    RefreshControl,
+    Linking,
+    Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import CustomerHeader from '../../components/customer/CustomerHeader';
@@ -135,6 +138,37 @@ const ServiceLedgerDetailScreen = () => {
         }
     };
 
+    const handlePayNow = async () => {
+        const upiId = shopDetails?.upi_id;
+        const shopName = shopDetails?.name || 'Shop';
+        const amount = calculatedTotal.toFixed(2);
+
+        if (!upiId) {
+            Alert.alert(
+                'UPI ID Not Found', 
+                'This business has not set up their UPI ID yet. Please contact the owner to make a payment.'
+            );
+            return;
+        }
+
+        const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(shopName)}&am=${amount}&cu=INR&tn=${encodeURIComponent(`Payment for ${customer?.name || 'Service'}`)}`;
+
+        try {
+            const supported = await Linking.canOpenURL(upiUrl);
+            if (supported) {
+                await Linking.openURL(upiUrl);
+            } else {
+                Alert.alert(
+                    'No UPI App Found', 
+                    'Could not find any UPI apps (PhonePe, GPay, Paytm, etc.) on this device.'
+                );
+            }
+        } catch (error) {
+            console.error('UPI payment error:', error);
+            Alert.alert('Error', 'Failed to open UPI app. Please try again later.');
+        }
+    };
+
     const renderCalendar = () => {
         const year = currentMonth.getFullYear();
         const month = currentMonth.getMonth();
@@ -207,10 +241,27 @@ const ServiceLedgerDetailScreen = () => {
 
                 <View style={styles.totalCalculationBox}>
                     <Text style={styles.totalCalculationLabel}>Calculated amount for this month:</Text>
-                    <Text style={styles.totalCalculationValue}>₹{calculatedTotal.toFixed(2)}</Text>
-                    <Text style={styles.rateInfoText}>
-                        Rate: ₹{customer?.service_rate || 0} / {customer?.service_rate_type || 'day'}
-                    </Text>
+                    <View style={styles.calculationRow}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.totalCalculationValue}>₹{calculatedTotal.toFixed(2)}</Text>
+                            <Text style={styles.rateInfoText}>
+                                Rate: ₹{customer?.service_rate || 0} / {customer?.service_rate_type || 'day'}
+                            </Text>
+                        </View>
+                        <TouchableOpacity 
+                            style={styles.payButton}
+                            onPress={handlePayNow}
+                            activeOpacity={0.8}
+                        >
+                            <LinearGradient
+                                colors={['#2563EB', '#1D4ED8']}
+                                style={styles.payButtonGradient}
+                            >
+                                <Ionicons name="card-outline" size={18} color="#fff" />
+                                <Text style={styles.payButtonText}>Pay Now</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </View>
         );
@@ -423,6 +474,33 @@ const styles = StyleSheet.create({
         color: '#666',
         marginTop: 4,
         fontStyle: 'italic',
+    },
+    calculationRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    payButton: {
+        marginLeft: 12,
+        borderRadius: 10,
+        overflow: 'hidden',
+        elevation: 3,
+        shadowColor: '#2563EB',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+    },
+    payButtonGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+    },
+    payButtonText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 14,
+        marginLeft: 6,
     },
 });
 

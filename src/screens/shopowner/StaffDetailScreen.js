@@ -22,7 +22,7 @@ import Modal from '../../components/ui/Modal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { customerAPI, getAPIErrorMessage, serviceAPI, staffAPI } from '../../api';
+import { customerAPI, getAPIErrorMessage, serviceAPI, shopAPI, staffAPI } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import ShopHeader from '../../components/shopowner/ShopHeader';
 import ShopBottomNav from '../../components/shopowner/ShopBottomNav';

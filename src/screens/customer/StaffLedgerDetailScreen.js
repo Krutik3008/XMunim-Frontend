@@ -206,7 +206,7 @@ const StaffLedgerDetailScreen = () => {
                 </View>
 
                 <View style={styles.totalCalculationBox}>
-                    <Text style={styles.totalCalculationLabel}>Calculated salary for this month:</Text>
+                    <Text style={styles.totalCalculationLabel} numberOfLines={1}>Calculated salary for this month:</Text>
                     <Text style={styles.totalCalculationValue}>₹{calculatedTotal.toFixed(2)}</Text>
                     <Text style={styles.rateInfoText}>
                         Rate: ₹{staff?.service_rate || 0} / {staff?.service_rate_type || 'day'}
