@@ -16,7 +16,8 @@ import {
     TextInput,
     KeyboardAvoidingView,
     TouchableWithoutFeedback,
-    Keyboard
+    Keyboard,
+    ToastAndroid
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -45,6 +46,63 @@ const StaffLedgerDetailScreen = () => {
     const [reminderMessage, setReminderMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [showRequestTypeDropdown, setShowRequestTypeDropdown] = useState(false);
+
+    // Toast notification state
+    const [toastMessage, setToastMessage] = useState('');
+    const [toastVisible, setToastVisible] = useState(false);
+    const [toastType, setToastType] = useState('success');
+    const toastAnim = useRef(new Animated.Value(0)).current;
+    const toastTimer = useRef(null);
+
+    const showToast = (message, type = 'success') => {
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+        
+        setToastMessage(message);
+        setToastType(type);
+        setToastVisible(true);
+        Animated.spring(toastAnim, {
+            toValue: 1,
+            useNativeDriver: true,
+            friction: 8,
+            tension: 40
+        }).start();
+
+        toastTimer.current = setTimeout(() => {
+            Animated.timing(toastAnim, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            }).start(() => setToastVisible(false));
+        }, 3000);
+    };
+
+    const renderToast = () => {
+        if (!toastVisible) return null;
+
+        return (
+            <Animated.View 
+                style={[
+                    styles.toastContainer, 
+                    { 
+                        opacity: toastAnim,
+                        transform: [{ 
+                            translateY: toastAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [50, 0]
+                            })
+                        }] 
+                    }
+                ]}
+            >
+                <View style={styles.toastContent}>
+                    <View style={[styles.toastIcon, { backgroundColor: toastType === 'error' ? '#EF4444' : '#10B981' }]}>
+                        <Ionicons name={toastType === 'error' ? "alert-circle" : "checkmark-circle"} size={20} color="#FFFFFF" />
+                    </View>
+                    <Text style={styles.toastText}>{toastMessage}</Text>
+                </View>
+            </Animated.View>
+        );
+    };
 
     const loadData = async (showLoading = true) => {
         if (showLoading) setLoading(true);
@@ -178,23 +236,27 @@ const StaffLedgerDetailScreen = () => {
             messageBody += `\nNote: ${reminderMessage}`;
         }
 
-        // We use the WhatsApp fallback since the customer->shop owner push notification 
-        // endpoint does not exist yet for staff requests. This maintains existing functionality 
-        // while changing the UI style to match the business side per user request.
-        const fullMessage = `Hello Shop Owner,\n\n${title}\n${messageBody}\n\nPlease check the XMunim app.`;
-        const url = `whatsapp://send?phone=91${shopDetails?.phone || staff.phone}&text=${encodeURIComponent(fullMessage)}`;
-
         setIsSending(true);
         try {
-            const supported = await Linking.canOpenURL(url);
-            if (supported) {
-                await Linking.openURL(url);
-            } else {
-                await Linking.openURL(`https://wa.me/91${shopDetails?.phone || staff.phone}?text=${encodeURIComponent(fullMessage)}`);
-            }
+            await customerDashboardAPI.notifyOwner(shopId, {
+                title: title,
+                body: messageBody,
+                method: "Push Notification"
+            });
             setShowPaymentRequestModal(false);
+            if (Platform.OS === 'android') {
+                showToast('Payment request sent to shop owner.');
+            } else {
+                Alert.alert('Success', 'Payment request sent to shop owner.');
+            }
         } catch (error) {
-            Alert.alert('Error', 'Failed to open WhatsApp');
+            const errorMessage = error.response?.data?.detail || 'Failed to send notification';
+            setShowPaymentRequestModal(false);
+            if (Platform.OS === 'android') {
+                showToast(errorMessage, 'error');
+            } else {
+                Alert.alert('Error', errorMessage);
+            }
         } finally {
             setIsSending(false);
         }
@@ -493,6 +555,7 @@ const StaffLedgerDetailScreen = () => {
                     setActiveTab={(tab) => navigation.navigate('CustomerDashboard', { tab })}
                 />
                 {renderPaymentRequestModal()}
+                {renderToast()}
             </SafeAreaView>
         </View>
     );
@@ -776,6 +839,22 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         marginLeft: 8,
     },
+    toastContainer: { position: 'absolute', bottom: 40, left: 20, right: 20, zIndex: 1000 },
+    toastContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 8,
+    },
+    toastIcon: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+    toastText: { fontSize: 14, color: '#1A1A1A', fontWeight: '500' },
 });
 
 export default StaffLedgerDetailScreen;

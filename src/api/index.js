@@ -276,6 +276,8 @@ export const customerDashboardAPI = {
     getLedger: () => api.get('/customer/ledger'),
     // Get customer's notification history
     getNotifications: () => api.get('/customer/notifications'),
+    // Send a push notification from the user to the shop owner
+    notifyOwner: (shopId, data) => api.post(`/shops/${shopId}/notify-owner`, data),
 };
 
 // ============ ADMIN APIs ============
