@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import CustomerHeader from '../../components/customer/CustomerHeader';
+import CustomerBottomNav from '../../components/customer/CustomerBottomNav';
 import { colors } from '../../theme';
 import { customerDashboardAPI } from '../../api';
 
@@ -329,6 +330,10 @@ const ServiceLedgerDetailScreen = () => {
                         {renderCalendar()}
                     </View>
                 </ScrollView>
+                <CustomerBottomNav 
+                    activeTab="ledger" 
+                    setActiveTab={(tab) => navigation.navigate('CustomerDashboard', { tab })} 
+                />
             </SafeAreaView>
         </View>
     );
@@ -340,14 +345,15 @@ const styles = StyleSheet.create({
         backgroundColor: '#F9FAFB',
     },
     scrollContent: {
-        padding: 16,
-        paddingBottom: 40,
+        paddingHorizontal: 16,
+        paddingTop: 8,
+        paddingBottom: 140,
     },
     headerContent: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 20,
-        paddingVertical: 15,
+        paddingVertical: 10,
         borderBottomWidth: 1,
         borderBottomColor: '#F3F4F6',
     },
