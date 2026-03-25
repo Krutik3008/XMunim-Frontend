@@ -154,7 +154,7 @@ const AdminCustomerManagement = ({ showToast }) => {
                 c.shop?.name?.toLowerCase().includes(searchLower)
             );
         }
-        
+
         // Note: Backend handles member_type filtering, frontend handles shop filtering locally for performance 
         // if we have all data. However, if we change shop, we might need to re-fetch if we use true pagination.
         // For now, these are filtered locally from the 1000 limit.
@@ -249,21 +249,45 @@ const AdminCustomerManagement = ({ showToast }) => {
 
                 {/* Details Section */}
                 <View style={styles.detailsContainer}>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Category:</Text>
-                        <Text style={styles.detailValue}>{item.shop?.category || 'General'}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Transactions:</Text>
-                        <Text style={styles.detailValue}>{item.totalTransactions || 0}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Last Purchase:</Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Ionicons name="calendar-outline" size={14} color="#111827" style={{ marginRight: 4 }} />
-                            <Text style={styles.detailValue}>{formatDate(item.lastTransaction)}</Text>
-                        </View>
-                    </View>
+                    {item.member_type === 'staff' || item.member_type === 'service' ? (
+                        <>
+                            <View style={styles.detailRow}>
+                                <Text style={styles.detailLabel}>Type / Role:</Text>
+                                <Text style={styles.detailValue}>{item.role || (item.member_type === 'staff' ? 'Staff Member' : 'Service Provider')}</Text>
+                            </View>
+                            <View style={styles.detailRow}>
+                                <Text style={styles.detailLabel}>Rate:</Text>
+                                <Text style={styles.detailValue}>
+                                    ₹{item.service_rate || 0} / {item.service_rate_type === 'hourly' ? 'hr' : 'day'}
+                                </Text>
+                            </View>
+                            <View style={styles.detailRow}>
+                                <Text style={styles.detailLabel}>Joined:</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <Ionicons name="calendar-outline" size={14} color="#111827" style={{ marginRight: 4 }} />
+                                    <Text style={styles.detailValue}>{formatDate(item.created_at || item.created)}</Text>
+                                </View>
+                            </View>
+                        </>
+                    ) : (
+                        <>
+                            <View style={styles.detailRow}>
+                                <Text style={styles.detailLabel}>Category:</Text>
+                                <Text style={styles.detailValue}>{item.shop?.category || 'General'}</Text>
+                            </View>
+                            <View style={styles.detailRow}>
+                                <Text style={styles.detailLabel}>Transactions:</Text>
+                                <Text style={styles.detailValue}>{item.totalTransactions || 0}</Text>
+                            </View>
+                            <View style={styles.detailRow}>
+                                <Text style={styles.detailLabel}>Last Purchase:</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <Ionicons name="calendar-outline" size={14} color="#111827" style={{ marginRight: 4 }} />
+                                    <Text style={styles.detailValue}>{formatDate(item.lastTransaction)}</Text>
+                                </View>
+                            </View>
+                        </>
+                    )}
                 </View>
 
                 {/* View Details Button */}
