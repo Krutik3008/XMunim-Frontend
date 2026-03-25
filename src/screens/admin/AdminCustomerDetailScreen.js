@@ -46,7 +46,7 @@ const AdminCustomerDetailScreen = ({ route, customer: propCustomer, shopId: prop
         if (onBack) {
             onBack();
         } else {
-            navigation.goBack();
+            navigation.navigate('AdminPanel', { screen: 'customers' });
         }
     };
 

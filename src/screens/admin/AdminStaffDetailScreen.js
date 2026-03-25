@@ -238,7 +238,7 @@ const AdminStaffDetailScreen = () => {
         <LinearGradient colors={['#4c1d95', '#1e40af']} style={styles.container}>
             <SafeAreaView style={{ flex: 1 }}>
                 <View style={styles.headerContent}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity onPress={() => navigation.navigate('AdminPanel', { screen: 'customers' })} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color="#fff" />
                     </TouchableOpacity>
                     <View>
