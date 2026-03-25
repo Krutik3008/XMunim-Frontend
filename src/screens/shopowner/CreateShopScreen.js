@@ -22,18 +22,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { shopAPI, locationAPI } from '../../api';
 
 const SHOP_CATEGORIES = [
-    'Grocery / Kirana',
-    'Restaurant / Cafe / Food',
-    'Clothing & Apparel',
-    'Mobile & Electronics',
-    'Medical & Pharmacy',
-    'Hardware & Sanitary',
-    'Footwear',
-    'Salon & Beauty Parlour',
-    'Jewellery',
-    'Stationery & Book Store',
-    'Dairy & Sweets',
-    'Automobile / Garage',
+    'Food',
+    'Salon & Spa',
+    'Lifestyle',
+    'Real Estate',
+    'Electronics',
+    'Home & Decor',
+    'Vehicles',
+    'Education',
+    'Sports & Fitness',
+    'Tours & Travels',
+    'Toys',
+    'Entertainment',
     'Other'
 ];
 
