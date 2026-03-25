@@ -238,11 +238,15 @@ const CustomerDashboardScreen = () => {
 
     // Calculate summary stats
     const getSummaryStats = () => {
-        const totalShops = ledgerData.length;
+        // Filter out staff members from summary stats as they are technically "payments from shop" 
+        // while Total Dues and Net Balance should reflect customer/service spending.
+        const filteredData = ledgerData.filter(item => item.customer?.type !== 'staff');
+        
+        const totalShops = filteredData.length;
         let totalOwed = 0;
         let netBalance = 0;
 
-        ledgerData.forEach(item => {
+        filteredData.forEach(item => {
             const balance = calculateServiceDues(item);
             if (balance < 0) {
                 totalOwed += Math.abs(balance);
