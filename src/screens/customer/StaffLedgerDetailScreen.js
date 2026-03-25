@@ -33,11 +33,13 @@ const StaffLedgerDetailScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
     const { user, logout, switchRole } = useAuth();
-    const { customer: staff, shopId, shopDetails } = route.params;
+    const { customer: initialStaff, shopId, shopDetails } = route.params;
 
+    const [staff, setStaff] = useState(initialStaff);
     const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [serviceLog, setServiceLog] = useState(staff?.service_log || {});
+    const [serviceLog, setServiceLog] = useState(initialStaff?.service_log || {});
     const [calculatedTotal, setCalculatedTotal] = useState(0);
+    const [totalHoursInMonth, setTotalHoursInMonth] = useState(0);
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [showRoleDropdown, setShowRoleDropdown] = useState(false);
@@ -110,8 +112,9 @@ const StaffLedgerDetailScreen = () => {
             const response = await customerDashboardAPI.getLedger();
             const ledger = response.data || [];
             // Find the current staff in the ledger
-            const updatedItem = ledger.find(item => item.customer?.id === (staff?.id || route.params.customer?.id));
+            const updatedItem = ledger.find(item => item.customer?.id === (initialStaff?.id || route.params.customer?.id));
             if (updatedItem && updatedItem.customer) {
+                setStaff(updatedItem.customer);
                 setServiceLog(updatedItem.customer.service_log || {});
             }
         } catch (error) {
@@ -139,12 +142,27 @@ const StaffLedgerDetailScreen = () => {
         return entry; // Legacy string
     };
 
+    const getDateHours = (dateStr) => {
+        const entry = serviceLog[dateStr];
+        if (!entry || typeof entry !== 'object') return 0;
+        return entry.hours || 0;
+    };
+
+    const calculateDayTotal = (entry) => {
+        if (!entry || typeof entry !== 'object') return 0;
+        if (entry.hours_log && Array.isArray(entry.hours_log) && entry.hours_log.length > 0) {
+            return entry.hours_log.reduce((sum, log) => sum + (log.hours * log.rate), 0);
+        }
+        return (entry.hours || 1) * (entry.rate || 0);
+    };
+
     const calculateTotal = () => {
         const savedRate = staff?.service_rate;
         const savedRateType = staff?.service_rate_type;
 
         if (savedRate === undefined || savedRate === null || isNaN(parseFloat(savedRate))) {
             setCalculatedTotal(0);
+            setTotalHoursInMonth(0);
             return;
         }
 
@@ -156,7 +174,6 @@ const StaffLedgerDetailScreen = () => {
         const monthPrefix = `${year}-${monthStr}`;
 
         if (savedRateType === 'monthly') {
-            // Monthly: Start with full rate, subtract for explicit "absent" markings
             let absentCount = 0;
             Object.keys(serviceLog).forEach(dateStr => {
                 if (dateStr.startsWith(monthPrefix) && getDateStatus(dateStr) === 'absent') {
@@ -167,15 +184,32 @@ const StaffLedgerDetailScreen = () => {
             const dailyRate = globalRate / daysInMonth;
             const reduction = absentCount * dailyRate;
             setCalculatedTotal(Math.max(0, globalRate - reduction));
+            setTotalHoursInMonth(0);
+        } else if (savedRateType === 'hourly') {
+            let total = 0;
+            let totalHrs = 0;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${monthStr}-${day.toString().padStart(2, '0')}`;
+                const status = getDateStatus(dateStr);
+
+                if (status === 'present') {
+                    const entry = serviceLog[dateStr];
+                    if (typeof entry === 'object' && entry !== null) {
+                        total += calculateDayTotal(entry);
+                        totalHrs += (entry.hours || 0);
+                    }
+                }
+            }
+            setCalculatedTotal(total);
+            setTotalHoursInMonth(totalHrs);
         } else {
-            // Daily/Hourly: Incremental total based on "present" (implicit or explicit)
+            // Daily: Incremental total based on "present" (implicit or explicit)
             let total = 0;
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateStr = `${year}-${monthStr}-${day.toString().padStart(2, '0')}`;
                 const status = getDateStatus(dateStr);
 
                 if (status === 'present') {
-                    // Try to use stored rate if available, else fallback to current staff.service_rate
                     const entry = serviceLog[dateStr];
                     const storedRate = (typeof entry === 'object' && entry !== null && entry.rate !== undefined)
                         ? entry.rate
@@ -184,6 +218,7 @@ const StaffLedgerDetailScreen = () => {
                 }
             }
             setCalculatedTotal(total);
+            setTotalHoursInMonth(0);
         }
     };
 
@@ -451,8 +486,13 @@ const StaffLedgerDetailScreen = () => {
                             >
                                 <Text style={styles.dayText}>{day}</Text>
                                 <View style={styles.statusIndicator}>
-                                    {status === 'present' && <Ionicons name="checkmark" size={14} color="#059669" />}
-                                    {status === 'absent' && <Ionicons name="close" size={14} color="#DC2626" />}
+                                    {status === 'present' && staff?.service_rate_type === 'hourly' && getDateHours(dateStr) > 0 ? (
+                                        <Text style={{ fontSize: 10, color: '#059669', fontWeight: '700' }}>{getDateHours(dateStr)}h</Text>
+                                    ) : status === 'present' ? (
+                                        <Ionicons name="checkmark" size={14} color="#059669" />
+                                    ) : status === 'absent' ? (
+                                        <Ionicons name="close" size={14} color="#DC2626" />
+                                    ) : null}
                                 </View>
                             </View>
                         );
@@ -462,9 +502,15 @@ const StaffLedgerDetailScreen = () => {
                 <View style={styles.totalCalculationBox}>
                     <Text style={styles.totalCalculationLabel} numberOfLines={1}>Calculated salary for this month:</Text>
                     <Text style={styles.totalCalculationValue}>₹{calculatedTotal.toFixed(2)}</Text>
-                    <Text style={styles.rateInfoText}>
-                        Rate: ₹{staff?.service_rate || 0} / {staff?.service_rate_type || 'day'}
-                    </Text>
+                    {staff?.service_rate_type === 'hourly' && totalHoursInMonth > 0 ? (
+                        <Text style={styles.rateInfoText}>
+                            Rate: ₹{staff?.service_rate || 0} / hr  |  Total: {totalHoursInMonth} hrs
+                        </Text>
+                    ) : (
+                        <Text style={styles.rateInfoText}>
+                            Rate: ₹{staff?.service_rate || 0} / {staff?.service_rate_type || 'day'}
+                        </Text>
+                    )}
 
                     {calculatedTotal > 0 && (
                         <TouchableOpacity
@@ -546,6 +592,12 @@ const StaffLedgerDetailScreen = () => {
                                 <Text style={styles.label}>Rate Type:</Text>
                                 <Text style={[styles.value, { textTransform: 'capitalize' }]}>{staff?.service_rate_type || 'Daily'}</Text>
                             </View>
+                            {staff?.service_rate_type === 'hourly' && staff?.service_daily_hours && (
+                                <View style={styles.infoRow}>
+                                    <Text style={styles.label}>Default Daily Hours:</Text>
+                                    <Text style={styles.value}>{staff.service_daily_hours} hrs</Text>
+                                </View>
+                            )}
                         </View>
                         {renderCalendar()}
                     </View>

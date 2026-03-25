@@ -43,10 +43,17 @@ const ServiceDetailScreen = ({ route, navigation }) => {
     // Service Delivery Calendar state
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [serviceRate, setServiceRate] = useState(initialCustomer?.service_rate?.toString() || '');
+    const [serviceDailyHours, setServiceDailyHours] = useState(initialCustomer?.service_daily_hours?.toString() || '8');
     const [serviceRateType, setServiceRateType] = useState(initialCustomer?.service_rate_type || 'daily');
     const [serviceLog, setServiceLog] = useState(initialCustomer?.service_log || {});
     const [isSavingRate, setIsSavingRate] = useState(false);
     const [calculatedTotal, setCalculatedTotal] = useState(0);
+    const [totalHoursInMonth, setTotalHoursInMonth] = useState(0);
+
+    // Hours Input Modal (for hourly type)
+    const [showHoursModal, setShowHoursModal] = useState(false);
+    const [hoursInput, setHoursInput] = useState('');
+    const [editingDateStr, setEditingDateStr] = useState(null);
 
     // Toast notification state
     const [toastMessage, setToastMessage] = useState('');
@@ -164,12 +171,27 @@ const ServiceDetailScreen = ({ route, navigation }) => {
         return entry; // Legacy string
     };
 
+    const getDateHours = (dateStr) => {
+        const entry = serviceLog[dateStr];
+        if (!entry || typeof entry !== 'object') return 0;
+        return entry.hours || 0;
+    };
+
+    const calculateDayTotal = (entry) => {
+        if (!entry || typeof entry !== 'object') return 0;
+        if (entry.hours_log && Array.isArray(entry.hours_log) && entry.hours_log.length > 0) {
+            return entry.hours_log.reduce((sum, log) => sum + (log.hours * log.rate), 0);
+        }
+        return (entry.hours || 1) * (entry.rate || 0);
+    };
+
     const calculateTotal = () => {
         const savedRate = customer.service_rate;
         const savedRateType = customer.service_rate_type;
 
         if (savedRate === undefined || savedRate === null || isNaN(parseFloat(savedRate))) {
             setCalculatedTotal(0);
+            setTotalHoursInMonth(0);
             return;
         }
 
@@ -184,42 +206,54 @@ const ServiceDetailScreen = ({ route, navigation }) => {
         today.setHours(0, 0, 0, 0);
 
         if (savedRateType === 'monthly') {
-            // Monthly: Start with full rate, subtract for explicit "absent" markings
             let absentCount = 0;
             Object.keys(serviceLog).forEach(dateStr => {
                 if (dateStr.startsWith(monthPrefix) && getDateStatus(dateStr) === 'absent') {
                     absentCount++;
                 }
             });
-            
             const dailyRate = globalRate / daysInMonth;
             const reduction = absentCount * dailyRate;
             setCalculatedTotal(Math.max(0, globalRate - reduction));
+            setTotalHoursInMonth(0);
+        } else if (savedRateType === 'hourly') {
+            let total = 0;
+            let totalHrs = 0;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${monthStr}-${day.toString().padStart(2, '0')}`;
+                const status = getDateStatus(dateStr);
+                if (status === 'present') {
+                    const entry = serviceLog[dateStr];
+                    if (typeof entry === 'object' && entry !== null) {
+                        total += calculateDayTotal(entry);
+                        totalHrs += (entry.hours || 0);
+                    }
+                }
+            }
+            setCalculatedTotal(total);
+            setTotalHoursInMonth(totalHrs);
         } else {
-            // Daily/Hourly: Incremental total based on "present" (implicit or explicit)
+            // Daily: Incremental total based on "present"
             let total = 0;
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateStr = `${year}-${monthStr}-${day.toString().padStart(2, '0')}`;
                 const status = getDateStatus(dateStr);
-                
                 if (status === 'present') {
                     const entryDate = new Date(dateStr);
                     entryDate.setHours(0, 0, 0, 0);
-                    
                     if (entryDate < today) {
-                        // Past day: use stored rate if available, else fallback to current customer.service_rate
                         const entry = serviceLog[dateStr];
                         const storedRate = (typeof entry === 'object' && entry !== null && entry.rate !== undefined) 
                             ? entry.rate 
                             : (customer.service_rate || globalRate); 
                         total += storedRate;
                     } else {
-                        // Today or future: use current global rate (input field value)
                         total += globalRate;
                     }
                 }
             }
             setCalculatedTotal(total);
+            setTotalHoursInMonth(0);
         }
     };
 
@@ -232,6 +266,14 @@ const ServiceDetailScreen = ({ route, navigation }) => {
         if (!serviceRate || isNaN(parseFloat(serviceRate))) {
             showToast('Please enter a valid numeric rate', 'error');
             return;
+        }
+
+        if (serviceRateType === 'hourly') {
+            const hrs = parseFloat(serviceDailyHours);
+            if (!serviceDailyHours || isNaN(hrs) || hrs <= 0) {
+                showToast('Please enter Default Daily Hours', 'error');
+                return;
+            }
         }
 
         setIsSavingRate(true);
@@ -269,6 +311,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
             const updateData = {
                 service_rate: parseFloat(serviceRate),
                 service_rate_type: serviceRateType,
+                service_daily_hours: parseFloat(serviceDailyHours) || 8,
                 service_log: migratedLog
             };
             await activeAPI.updateServiceData(shopId, customer.id, updateData);
@@ -288,10 +331,8 @@ const ServiceDetailScreen = ({ route, navigation }) => {
             return;
         }
 
-        // Restriction logic: ONLY allow editing the current date
         try {
             const isToday = new Date().toDateString() === new Date(dateStr).toDateString();
-
             if (!isToday) {
                 showToast("Only today's attendance can be edited", "error");
                 return;
@@ -302,20 +343,30 @@ const ServiceDetailScreen = ({ route, navigation }) => {
 
         const currentStatus = getDateStatus(dateStr);
         let newStatus = 'present';
-        
-        // Cycle: null -> present -> absent -> null
         if (!currentStatus) newStatus = 'present';
         else if (currentStatus === 'present') newStatus = 'absent';
         else if (currentStatus === 'absent') newStatus = null;
 
         const updatedLog = { ...serviceLog };
+        const currentRate = parseFloat(serviceRate);
+
         if (newStatus === null) {
             delete updatedLog[dateStr];
         } else {
-            updatedLog[dateStr] = {
-                status: newStatus,
-                rate: parseFloat(serviceRate)
-            };
+            if (serviceRateType === 'hourly' && newStatus === 'present') {
+                const defaultHrs = parseFloat(serviceDailyHours) || 8;
+                updatedLog[dateStr] = {
+                    status: newStatus,
+                    rate: currentRate,
+                    hours: defaultHrs,
+                    hours_log: [{ hours: defaultHrs, rate: currentRate }]
+                };
+            } else {
+                updatedLog[dateStr] = {
+                    status: newStatus,
+                    rate: currentRate
+                };
+            }
         }
         setServiceLog(updatedLog);
 
@@ -325,7 +376,132 @@ const ServiceDetailScreen = ({ route, navigation }) => {
             });
         } catch (error) {
             showToast('Failed to sync calendar update', 'error');
-            setServiceLog(serviceLog); // Revert
+            setServiceLog(serviceLog);
+        }
+    };
+
+    const openHoursModal = (dateStr) => {
+        if (!customer.is_verified) {
+             showToast('First Verify the customer before changes', 'error');
+             return;
+        }
+        if (new Date().toDateString() !== new Date(dateStr).toDateString()) {
+             showToast("Only today's attendance can be edited", "error");
+             return;
+        }
+        if (serviceRateType !== 'hourly') return;
+
+        const existingEntry = serviceLog[dateStr];
+        if (typeof existingEntry === 'object' && existingEntry !== null && existingEntry.status === 'present') {
+            setHoursInput((existingEntry.hours || '').toString());
+        } else {
+            setHoursInput(serviceDailyHours?.toString() || '8');
+        }
+        setEditingDateStr(dateStr);
+        setShowHoursModal(true);
+    };
+
+    const handleSaveHours = async () => {
+        const hours = parseFloat(hoursInput);
+        if (!hoursInput || isNaN(hours) || hours <= 0) {
+            showToast('Please enter valid hours (must be > 0)', 'error');
+            return;
+        }
+
+        const dateStr = editingDateStr;
+        const currentRate = parseFloat(serviceRate);
+        const updatedLog = { ...serviceLog };
+        const existingEntry = updatedLog[dateStr];
+
+        if (typeof existingEntry === 'object' && existingEntry !== null && existingEntry.status === 'present' && existingEntry.hours_log) {
+            // Updating existing entry — check if rate changed since last log
+            const lastLog = existingEntry.hours_log[existingEntry.hours_log.length - 1];
+            const oldTotalHours = existingEntry.hours || 0;
+            const additionalHours = hours - oldTotalHours;
+
+            if (additionalHours > 0 && lastLog && lastLog.rate !== currentRate) {
+                // Rate changed — add new segment with remaining hours at new rate
+                updatedLog[dateStr] = {
+                    ...existingEntry,
+                    hours: hours,
+                    rate: currentRate,
+                    hours_log: [...existingEntry.hours_log, { hours: additionalHours, rate: currentRate }]
+                };
+            } else if (additionalHours !== 0) {
+                // Same rate — update the last log entry
+                const newLog = [...existingEntry.hours_log];
+                if (newLog.length > 0) {
+                    newLog[newLog.length - 1] = { ...newLog[newLog.length - 1], hours: newLog[newLog.length - 1].hours + additionalHours };
+                    // If last log became 0 or negative, remove it
+                    if (newLog[newLog.length - 1].hours <= 0) newLog.pop();
+                }
+                updatedLog[dateStr] = {
+                    ...existingEntry,
+                    hours: hours,
+                    rate: currentRate,
+                    hours_log: newLog.length > 0 ? newLog : [{ hours: hours, rate: currentRate }]
+                };
+            } else {
+                // No change in hours, just update rate reference
+                updatedLog[dateStr] = { ...existingEntry, rate: currentRate };
+            }
+        } else {
+            // New entry or replacing absent
+            updatedLog[dateStr] = {
+                status: 'present',
+                rate: currentRate,
+                hours: hours,
+                hours_log: [{ hours: hours, rate: currentRate }]
+            };
+        }
+
+        setServiceLog(updatedLog);
+        setShowHoursModal(false);
+
+        try {
+            await activeAPI.updateServiceData(shopId, customer.id, {
+                service_log: updatedLog
+            });
+        } catch (error) {
+            showToast('Failed to sync hours update', 'error');
+            setServiceLog(serviceLog);
+        }
+    };
+
+    const handleMarkAbsent = async () => {
+        const dateStr = editingDateStr;
+        const updatedLog = { ...serviceLog };
+        updatedLog[dateStr] = {
+            status: 'absent',
+            rate: parseFloat(serviceRate)
+        };
+        setServiceLog(updatedLog);
+        setShowHoursModal(false);
+
+        try {
+            await activeAPI.updateServiceData(shopId, customer.id, {
+                service_log: updatedLog
+            });
+        } catch (error) {
+            showToast('Failed to sync update', 'error');
+            setServiceLog(serviceLog);
+        }
+    };
+
+    const handleClearDay = async () => {
+        const dateStr = editingDateStr;
+        const updatedLog = { ...serviceLog };
+        delete updatedLog[dateStr];
+        setServiceLog(updatedLog);
+        setShowHoursModal(false);
+
+        try {
+            await activeAPI.updateServiceData(shopId, customer.id, {
+                service_log: updatedLog
+            });
+        } catch (error) {
+            showToast('Failed to sync update', 'error');
+            setServiceLog(serviceLog);
         }
     };
 
@@ -407,12 +583,18 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                                     isFuture && { opacity: 0.5 } // Dim only future dates
                                 ]}
                                 onPress={() => toggleDateStatus(dateStr)}
+                                onLongPress={() => openHoursModal(dateStr)}
                                 disabled={!isToday} // Disable interaction for all dates except today
                             >
                                 <Text style={[styles.dayText, isFuture && { color: '#9CA3AF' }]}>{day}</Text>
                                 <View style={styles.statusIndicator}>
-                                    {status === 'present' && <Ionicons name="checkmark" size={14} color="#059669" />}
-                                    {status === 'absent' && <Ionicons name="close" size={14} color="#DC2626" />}
+                                    {status === 'present' && serviceRateType === 'hourly' && getDateHours(dateStr) > 0 ? (
+                                        <Text style={{ fontSize: 10, color: '#059669', fontWeight: '700' }}>{getDateHours(dateStr)}h</Text>
+                                    ) : status === 'present' ? (
+                                        <Ionicons name="checkmark" size={14} color="#059669" />
+                                    ) : status === 'absent' ? (
+                                        <Ionicons name="close" size={14} color="#DC2626" />
+                                    ) : null}
                                 </View>
                             </TouchableOpacity>
                         );
@@ -422,6 +604,11 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                 <View style={styles.totalCalculationBox}>
                     <Text style={styles.totalCalculationLabel}>Estimated total for this month:</Text>
                     <Text style={styles.totalCalculationValue}>₹{calculatedTotal.toFixed(2)}</Text>
+                    {serviceRateType === 'hourly' && totalHoursInMonth > 0 && (
+                        <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4, fontStyle: 'italic' }}>
+                            Total: {totalHoursInMonth} hours × ₹{serviceRate}/hr
+                        </Text>
+                    )}
                     
                     {calculatedTotal > 0 && (
                         <TouchableOpacity 
@@ -651,6 +838,20 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                                     value={serviceRate}
                                     onChangeText={setServiceRate}
                                 />
+                                {serviceRateType === 'hourly' && (
+                                    <View style={{ marginTop: 12 }}>
+                                        <Text style={styles.inputLabel}>
+                                            Default Daily Hours <Text style={{ color: '#EF4444' }}>*</Text>
+                                        </Text>
+                                        <TextInput
+                                            style={styles.rateTextInput}
+                                            placeholder="e.g. 8"
+                                            keyboardType="numeric"
+                                            value={serviceDailyHours}
+                                            onChangeText={setServiceDailyHours}
+                                        />
+                                    </View>
+                                )}
                                 <View style={styles.rateTypeContainer}>
                                     {['hourly', 'daily', 'monthly'].map((type) => (
                                         <TouchableOpacity
@@ -777,6 +978,83 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                     showToast={showToast}
                     renderToast={renderToast}
                 />
+
+                {/* Hours Input Modal for Hourly Type */}
+                <Modal
+                    visible={showHoursModal}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => setShowHoursModal(false)}
+                    statusBarTranslucent={true}
+                >
+                    <KeyboardAvoidingView
+                        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 }}
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    >
+                        <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 20 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
+                                <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Log Hours</Text>
+                                <TouchableOpacity onPress={() => setShowHoursModal(false)}>
+                                    <Ionicons name="close" size={24} color="#666" />
+                                </TouchableOpacity>
+                            </View>
+
+                            <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
+                                Enter total hours worked for{' '}
+                                <Text style={{ fontWeight: '700', color: '#111827' }}>
+                                    {editingDateStr ? new Date(editingDateStr + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'today'}
+                                </Text>
+                            </Text>
+
+                            <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8, color: '#374151' }}>
+                                Total Hours <Text style={{ color: '#EF4444' }}>*</Text>
+                            </Text>
+                            <TextInput
+                                style={{ borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 12, fontSize: 18, fontWeight: '700', backgroundColor: '#F9FAFB' }}
+                                value={hoursInput}
+                                onChangeText={setHoursInput}
+                                keyboardType="numeric"
+                                placeholder="e.g. 6"
+                                placeholderTextColor="#9CA3AF"
+                                autoFocus={true}
+                            />
+
+                            {hoursInput && !isNaN(parseFloat(hoursInput)) && parseFloat(hoursInput) > 0 && (
+                                <View style={{ backgroundColor: '#EFF6FF', padding: 12, borderRadius: 8, marginTop: 12, borderLeftWidth: 3, borderLeftColor: '#3B82F6', marginBottom: 16 }}>
+                                    <Text style={{ fontSize: 13, color: '#3B82F6', fontWeight: '600' }}>Calculation Preview</Text>
+                                    <Text style={{ fontSize: 16, fontWeight: '700', color: '#1A1A1A', marginTop: 4 }}>
+                                        {parseFloat(hoursInput)} hrs × ₹{serviceRate}/hr = ₹{(parseFloat(hoursInput) * parseFloat(serviceRate || 0)).toFixed(2)}
+                                    </Text>
+                                </View>
+                            )}
+                            
+                            {!hoursInput && <View style={{ height: 16 }} />}
+
+                            <TouchableOpacity
+                                style={{ backgroundColor: '#3B82F6', padding: 14, borderRadius: 8, alignItems: 'center', marginBottom: 12 }}
+                                onPress={handleSaveHours}
+                            >
+                                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Save Hours</Text>
+                            </TouchableOpacity>
+
+                            <View style={{ flexDirection: 'row', gap: 10 }}>
+                                <TouchableOpacity
+                                    style={{ flex: 1, backgroundColor: '#FEE2E2', padding: 12, borderRadius: 8, alignItems: 'center' }}
+                                    onPress={handleMarkAbsent}
+                                >
+                                    <Text style={{ color: '#EF4444', fontWeight: '600', fontSize: 14 }}>Mark Absent</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={{ flex: 1, backgroundColor: '#F3F4F6', padding: 12, borderRadius: 8, alignItems: 'center' }}
+                                    onPress={handleClearDay}
+                                >
+                                    <Text style={{ color: '#6B7280', fontWeight: '600', fontSize: 14 }}>Clear Day</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                        {renderToast()}
+                    </KeyboardAvoidingView>
+                </Modal>
 
                 {/* Bottom Navigation */}
                 <ShopBottomNav activeTab="customers" />

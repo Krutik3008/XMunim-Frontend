@@ -173,7 +173,7 @@ const CustomerDashboardScreen = () => {
         if (!item.customer) return 0;
         
         // For regular customers, just return the balance
-        if (item.type !== 'services') {
+        if (item.customer?.type !== 'services' && item.customer?.type !== 'staff') {
             return item.customer.balance || 0;
         }
 
@@ -201,6 +201,20 @@ const CustomerDashboardScreen = () => {
             });
             const dailyRate = globalRate / daysInMonth;
             totalForMonth = Math.max(0, globalRate - (absentCount * dailyRate));
+        } else if (rateType === 'hourly') {
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${monthStr}-${day.toString().padStart(2, '0')}`;
+                const entry = serviceLog[dateStr];
+                const status = typeof entry === 'string' ? entry : entry?.status;
+                
+                if (status === 'present' && typeof entry === 'object' && entry !== null) {
+                    if (entry.hours_log && Array.isArray(entry.hours_log) && entry.hours_log.length > 0) {
+                        totalForMonth += entry.hours_log.reduce((sum, log) => sum + (log.hours * (log.rate || globalRate)), 0);
+                    } else {
+                        totalForMonth += (entry.hours || 0) * (entry.rate || globalRate);
+                    }
+                }
+            }
         } else {
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateStr = `${year}-${monthStr}-${day.toString().padStart(2, '0')}`;
@@ -652,7 +666,7 @@ const CustomerDashboardScreen = () => {
                                                 if (type === 'staff' || type === 'services') {
                                                     const rate = item.customer?.service_rate || 0;
                                                     const rateType = item.customer?.service_rate_type || 'daily';
-                                                    const calculatedBalance = type === 'services' ? calculateServiceDues(item) : 0;
+                                                    const calculatedBalance = (type === 'services' || type === 'staff') ? calculateServiceDues(item) : (item.customer?.balance || 0);
                                                     
                                                     return (
                                                         <View style={styles.ledgerBalanceRow}>
