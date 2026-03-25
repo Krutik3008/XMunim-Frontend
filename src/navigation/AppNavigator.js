@@ -29,6 +29,8 @@ import PoliciesScreen from '../screens/customer/account/PoliciesScreen';
 import AdminPanelScreen from '../screens/admin/AdminPanelScreen';
 import AdminCustomerDetailScreen from '../screens/admin/AdminCustomerDetailScreen';
 import AdminShopDetailsScreen from '../screens/admin/AdminShopDetailsScreen';
+import AdminStaffDetailScreen from '../screens/admin/AdminStaffDetailScreen';
+import AdminServiceDetailScreen from '../screens/admin/AdminServiceDetailScreen';
 import CreateShopScreen from '../screens/shopowner/CreateShopScreen';
 
 const Stack = createNativeStackNavigator();
@@ -83,6 +85,8 @@ const MainNavigator = ({ initialRoute }) => (
         {/* Admin Screens */}
         <Stack.Screen name="AdminPanel" component={AdminPanelScreen} />
         <Stack.Screen name="AdminCustomerDetail" component={AdminCustomerDetailScreen} />
+        <Stack.Screen name="AdminStaffDetail" component={AdminStaffDetailScreen} />
+        <Stack.Screen name="AdminServiceDetail" component={AdminServiceDetailScreen} />
         <Stack.Screen name="AdminShopDetails" component={AdminShopDetailsScreen} />
     </Stack.Navigator>
 );

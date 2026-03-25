@@ -22,7 +22,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { adminAPI, customerAPI, getAPIErrorMessage } from '../../api';
-import AdminCustomerDetailScreen from './AdminCustomerDetailScreen';
 import { Skeleton } from '../../components/ui';
 
 const { width } = Dimensions.get('window');
@@ -36,7 +35,6 @@ const AdminCustomerManagement = ({ showToast }) => {
     const [search, setSearch] = useState('');
     const [selectedShop, setSelectedShop] = useState('all');
     const [selectedType, setSelectedType] = useState('all'); // all, customer, staff, service
-    const [selectedCustomer, setSelectedCustomer] = useState(null); // Added for inline navigation
     const [stats, setStats] = useState({
         totalCustomers: 0,
         activeShops: 0,
@@ -83,17 +81,6 @@ const AdminCustomerManagement = ({ showToast }) => {
         fetchData();
     }, []);
 
-    // Android hardware back button: return to customer list from detail
-    useEffect(() => {
-        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-            if (selectedCustomer) {
-                setSelectedCustomer(null);
-                return true;
-            }
-            return false;
-        });
-        return () => backHandler.remove();
-    }, [selectedCustomer]);
 
     const fetchData = async () => {
         try {
@@ -186,18 +173,6 @@ const AdminCustomerManagement = ({ showToast }) => {
     const formatCurrency = (amount) => {
         return `₹${parseFloat(Math.abs(amount || 0)).toFixed(0)}`;
     };
-
-    // Inline Detail View
-    if (selectedCustomer) {
-        return (
-            <AdminCustomerDetailScreen
-                customer={selectedCustomer}
-                shopId={selectedCustomer.shop?.id}
-                onBack={() => setSelectedCustomer(null)}
-                showToast={showToast}
-            />
-        );
-    }
 
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
@@ -303,7 +278,13 @@ const AdminCustomerManagement = ({ showToast }) => {
                             }
                             return;
                         }
-                        setSelectedCustomer(item);
+                        if (item.member_type === 'staff') {
+                            navigation.navigate('AdminStaffDetail', { customer: item, shopId: item.shop.id });
+                        } else if (item.member_type === 'service') {
+                            navigation.navigate('AdminServiceDetail', { customer: item, shopId: item.shop.id });
+                        } else {
+                            navigation.navigate('AdminCustomerDetail', { customer: item, shopId: item.shop.id });
+                        }
                     }}
                 >
                     <Ionicons name="eye-outline" size={16} color="#111827" style={{ marginRight: 6 }} />
@@ -355,7 +336,7 @@ const AdminCustomerManagement = ({ showToast }) => {
                 <View style={styles.statsContainer}>
                     <StatsCard
                         icon="people-outline"
-                        title="Customers"
+                        title="Members"
                         value={stats.totalCustomers}
                         subtext="Total Registered"
                         color="#2563EB"
