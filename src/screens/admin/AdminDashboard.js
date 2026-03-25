@@ -140,7 +140,7 @@ const AdminDashboard = ({ onRefreshStats, showToast }) => {
                     iconBg="#D1FAE5"
                 />
                 <StatCard
-                    title="Customers"
+                    title="Members"
                     icon="people-outline"
                     value={dashboardData?.total_customers || 0}
                     subtext="All shops"
