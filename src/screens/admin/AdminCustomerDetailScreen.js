@@ -462,7 +462,7 @@ const AdminCustomerDetailScreen = ({ route, customer: propCustomer, shopId: prop
             <SafeAreaView>
                 <TouchableWithoutFeedback onPress={() => { setShowTypeDropdown(false); setShowPerPageDropdown(false); Keyboard.dismiss(); }}>
                     <ScrollView
-                        contentContainerStyle={[styles.scrollContent, { paddingBottom: 30 }]}
+                        contentContainerStyle={[styles.scrollContent, { paddingBottom: 140 }]}
                         keyboardShouldPersistTaps="handled"
                         onScrollBeginDrag={() => {
                             setShowTypeDropdown(false);
@@ -898,7 +898,7 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff', letterSpacing: 0.5 },
     headerSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.7)' },
 
-    scrollContent: { padding: 16, paddingBottom: 10 },
+    scrollContent: { padding: 16, paddingBottom: 140 },
 
     card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 16, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
     cardHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 10 },
@@ -971,8 +971,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#E5E7EB',
         marginVertical: 16,
     },
-
-    // New Styles from admin Screen
     sectionCard: {
         backgroundColor: '#fff',
         borderRadius: 12,

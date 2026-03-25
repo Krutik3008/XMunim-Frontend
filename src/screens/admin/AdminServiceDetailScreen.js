@@ -285,10 +285,6 @@ const AdminServiceDetailScreen = () => {
                         </View>
 
                         <View style={styles.profileSection}>
-                            <View style={styles.avatar}>
-                                <Text style={styles.avatarText}>{customer?.name?.charAt(0).toUpperCase()}</Text>
-                                <View style={styles.statusDot} />
-                            </View>
                             <View style={styles.profileDetails}>
                                 <Text style={styles.customerNameMain}>{customer?.name}</Text>
                                 <Text style={styles.customerPhone}>+91 {customer?.phone}</Text>
@@ -348,7 +344,7 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         padding: 16,
-        paddingBottom: 40,
+        paddingBottom: 140,
     },
     card: {
         backgroundColor: '#fff',
