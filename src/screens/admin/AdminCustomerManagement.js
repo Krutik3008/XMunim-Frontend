@@ -35,6 +35,7 @@ const AdminCustomerManagement = ({ showToast }) => {
     const [refreshing, setRefreshing] = useState(false);
     const [search, setSearch] = useState('');
     const [selectedShop, setSelectedShop] = useState('all');
+    const [selectedType, setSelectedType] = useState('all'); // all, customer, staff, service
     const [selectedCustomer, setSelectedCustomer] = useState(null); // Added for inline navigation
     const [stats, setStats] = useState({
         totalCustomers: 0,
@@ -57,6 +58,7 @@ const AdminCustomerManagement = ({ showToast }) => {
 
     // Filter State
     const [showShopDropdown, setShowShopDropdown] = useState(false);
+    const [showTypeDropdown, setShowTypeDropdown] = useState(false);
     const [shopSearch, setShopSearch] = useState('');
 
     const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -102,8 +104,8 @@ const AdminCustomerManagement = ({ showToast }) => {
             const shopsData = shopsResponse.data.shops || [];
             setShops(shopsData);
 
-            // 2. Fetch ALL customers directly (to include those with 0 transactions)
-            const customersResponse = await adminAPI.getCustomers('', 0, 1000);
+            // 2. Fetch ALL members directly (to include customers, staff, services)
+            const customersResponse = await adminAPI.getCustomers(search, 0, 1000, selectedType);
             const fetchedCustomers = customersResponse.data.customers || [];
             const globalTotalTransactions = customersResponse.data.total_global_transactions || 0;
 
@@ -148,6 +150,11 @@ const AdminCustomerManagement = ({ showToast }) => {
         }
     };
 
+    // Re-fetch when type changes
+    useEffect(() => {
+        fetchData();
+    }, [selectedType]);
+
 
     const filterCustomers = () => {
         let filtered = [...customers];
@@ -160,6 +167,10 @@ const AdminCustomerManagement = ({ showToast }) => {
                 c.shop?.name?.toLowerCase().includes(searchLower)
             );
         }
+        
+        // Note: Backend handles member_type filtering, frontend handles shop filtering locally for performance 
+        // if we have all data. However, if we change shop, we might need to re-fetch if we use true pagination.
+        // For now, these are filtered locally from the 1000 limit.
 
         if (selectedShop !== 'all') {
             filtered = filtered.filter(c => c.shop?.id === selectedShop);
@@ -207,7 +218,20 @@ const AdminCustomerManagement = ({ showToast }) => {
 
                 {/* Header: Name and Balance Pill */}
                 <View style={styles.cardHeader}>
-                    <Text style={styles.customerName}>{item.name}</Text>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.customerName}>{item.name}</Text>
+                        <View style={[
+                            styles.typeBadge,
+                            { backgroundColor: item.member_type === 'staff' ? '#FEE2E2' : item.member_type === 'service' ? '#E0F2FE' : '#F3F4F6' }
+                        ]}>
+                            <Text style={[
+                                styles.typeBadgeText,
+                                { color: item.member_type === 'staff' ? '#DC2626' : item.member_type === 'service' ? '#0284C7' : '#6B7280' }
+                            ]}>
+                                {item.member_type?.toUpperCase() || 'CUSTOMER'}
+                            </Text>
+                        </View>
+                    </View>
                     <View style={[
                         styles.balancePill,
                         { backgroundColor: isCredit ? '#ECFDF5' : isOwes ? '#FEF2F2' : '#F3F4F6' }
@@ -395,19 +419,37 @@ const AdminCustomerManagement = ({ showToast }) => {
                             </View>
                         </View>
 
-                        <TouchableOpacity
-                            style={styles.shopFilterBtn}
-                            onPress={() => setShowShopDropdown(true)}
-                        >
-                            <Text style={styles.shopFilterText}>
-                                {selectedShop === 'all' ? 'All Shops' : shops.find(s => s.id === selectedShop)?.name || 'Selected Shop'}
-                            </Text>
-                            <Ionicons name="chevron-down" size={16} color="#6B7280" />
-                        </TouchableOpacity>
+                        <View style={styles.filterRow}>
+                            <TouchableOpacity
+                                style={[styles.filterBtn, { flex: 1, marginRight: 8 }]}
+                                onPress={() => setShowTypeDropdown(true)}
+                            >
+                                <View style={styles.filterBtnContent}>
+                                    <Ionicons name="person-outline" size={16} color="#6B7280" style={{ marginRight: 6 }} />
+                                    <Text style={styles.filterBtnText} numberOfLines={1}>
+                                        {selectedType === 'all' ? 'All Types' : selectedType === 'customer' ? 'Customers' : selectedType === 'staff' ? 'Staff' : 'Services'}
+                                    </Text>
+                                </View>
+                                <Ionicons name="chevron-down" size={16} color="#6B7280" />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.filterBtn, { flex: 1 }]}
+                                onPress={() => setShowShopDropdown(true)}
+                            >
+                                <View style={styles.filterBtnContent}>
+                                    <Ionicons name="storefront-outline" size={16} color="#6B7280" style={{ marginRight: 6 }} />
+                                    <Text style={styles.filterBtnText} numberOfLines={1}>
+                                        {selectedShop === 'all' ? 'All Shops' : shops.find(s => s.id === selectedShop)?.name || 'Selected Shop'}
+                                    </Text>
+                                </View>
+                                <Ionicons name="chevron-down" size={16} color="#6B7280" />
+                            </TouchableOpacity>
+                        </View>
 
                         <View style={styles.resultsRow}>
                             <Text style={styles.resultsText}>
-                                Showing {paginatedCustomers.length} of {filteredCustomers.length} customers
+                                Showing {paginatedCustomers.length} of {filteredCustomers.length} members
                             </Text>
                             <TouchableOpacity onPress={() => { setLoading(true); fetchData(); }} style={styles.refreshBtn}>
                                 <Text style={styles.refreshText}>Refresh</Text>
@@ -457,7 +499,7 @@ const AdminCustomerManagement = ({ showToast }) => {
                         <Text style={styles.paginationInfoText}>
                             Showing {paginatedCustomers.length === 0 ? 0 : currentPage * pageSize + 1} to{' '}
                             {Math.min((currentPage + 1) * pageSize, filteredCustomers.length)} of{' '}
-                            <Text style={styles.paginationInfoBold}>{filteredCustomers.length} customers</Text>
+                            <Text style={styles.paginationInfoBold}>{filteredCustomers.length} members</Text>
                         </Text>
 
                         <View style={styles.pageSizeSelector}>
@@ -638,6 +680,65 @@ const AdminCustomerManagement = ({ showToast }) => {
                     </KeyboardAvoidingView>
                 </View>
             </Modal>
+
+            {/* Type Selection Modal */}
+            <Modal
+                visible={showTypeDropdown}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setShowTypeDropdown(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <TouchableOpacity
+                        style={styles.modalBackdrop}
+                        activeOpacity={1}
+                        onPress={() => setShowTypeDropdown(false)}
+                    />
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <View style={styles.modalIconContainer}>
+                                    <Ionicons name="people-outline" size={20} color="#7C3AED" />
+                                </View>
+                                <View>
+                                    <Text style={styles.modalTitle}>Member Type</Text>
+                                    <Text style={styles.modalSubtitle}>Filter results by category</Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowTypeDropdown(false)} style={styles.closeBtn}>
+                                <Ionicons name="close" size={24} color="#6B7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={{ paddingVertical: 8 }}>
+                            {[
+                                { id: 'all', name: 'All Members', icon: 'apps-outline', sub: 'View everyone combined' },
+                                { id: 'customer', name: 'Customers', icon: 'person-outline', sub: 'Regular shop customers' },
+                                { id: 'staff', name: 'Staff', icon: 'briefcase-outline', sub: 'Salaried or hourly employees' },
+                                { id: 'service', name: 'Services', icon: 'construct-outline', sub: 'External service providers' }
+                            ].map(type => (
+                                <TouchableOpacity
+                                    key={type.id}
+                                    style={[styles.modalItem, selectedType === type.id && styles.modalItemActive]}
+                                    onPress={() => {
+                                        setSelectedType(type.id);
+                                        setShowTypeDropdown(false);
+                                    }}
+                                >
+                                    <View style={[styles.modalItemIcon, selectedType === type.id && { backgroundColor: '#F5F3FF' }]}>
+                                        <Ionicons name={type.icon} size={20} color={selectedType === type.id ? '#7C3AED' : '#6B7280'} />
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={[styles.modalItemText, selectedType === type.id && styles.modalItemTextActive]}>{type.name}</Text>
+                                        <Text style={styles.modalItemSubtext}>{type.sub}</Text>
+                                    </View>
+                                    {selectedType === type.id && <Ionicons name="checkmark-circle" size={22} color="#7C3AED" />}
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -758,7 +859,11 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#111827',
     },
-    shopFilterBtn: {
+    filterRow: {
+        flexDirection: 'row',
+        marginBottom: 16,
+    },
+    filterBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -767,12 +872,28 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         paddingHorizontal: 12,
         height: 48,
-        marginBottom: 16,
         backgroundColor: '#fff',
     },
-    shopFilterText: {
+    filterBtnContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    filterBtnText: {
         fontSize: 14,
         color: '#374151',
+        flex: 1,
+    },
+    typeBadge: {
+        alignSelf: 'flex-start',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        marginTop: 4,
+    },
+    typeBadgeText: {
+        fontSize: 10,
+        fontWeight: 'bold',
     },
     resultsRow: {
         flexDirection: 'row',

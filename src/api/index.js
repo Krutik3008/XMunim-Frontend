@@ -318,9 +318,9 @@ export const adminAPI = {
     getUsersForRoleAssignment: () =>
         api.get('/admin/users-for-role-assignment'),
 
-    // Get all customers (Admin view)
-    getCustomers: (search, skip = 0, limit = 100) =>
-        api.get('/admin/customers', { params: { search, skip, limit } }),
+    // Get all customers/members (Admin view)
+    getCustomers: (search, skip = 0, limit = 100, memberType = 'all') =>
+        api.get('/admin/customers', { params: { search, skip, limit, member_type: memberType } }),
 };
 
 /**
