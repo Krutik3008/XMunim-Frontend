@@ -19,6 +19,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { staffAPI, shopAPI, getAPIErrorMessage } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import AdminBottomTab from '../../components/admin/AdminBottomTab';
+import AdminTopBar from '../../components/admin/AdminTopBar';
 
 const { width } = Dimensions.get('window');
 
@@ -226,6 +227,9 @@ const AdminStaffDetailScreen = () => {
     if (loading && !refreshing) {
         return (
             <LinearGradient colors={['#4c1d95', '#1e40af']} style={styles.container}>
+                <AdminTopBar
+                    onBack={() => navigation.navigate('AdminPanel', { screen: 'customers' })}
+                />
                 <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <ActivityIndicator size="large" color="#fff" />
                     <Text style={{ color: '#fff', marginTop: 12 }}>Loading Staff Details...</Text>
@@ -236,20 +240,23 @@ const AdminStaffDetailScreen = () => {
 
     return (
         <LinearGradient colors={['#4c1d95', '#1e40af']} style={styles.container}>
+            <AdminTopBar
+                onBack={() => navigation.navigate('AdminPanel', { screen: 'customers' })}
+            />
             <SafeAreaView style={{ flex: 1 }}>
-                <View style={styles.headerContent}>
-                    <TouchableOpacity onPress={() => navigation.navigate('AdminPanel', { screen: 'customers' })} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color="#fff" />
-                    </TouchableOpacity>
-                    <View>
-                        <Text style={styles.headerTitle}>Staff logs for {customer?.name}</Text>
-                    </View>
-                </View>
-
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(false)} tintColor="#fff" />}
                 >
+                    <View style={styles.headerContent}>
+                        <TouchableOpacity onPress={() => navigation.navigate('AdminPanel', { screen: 'customers' })} style={styles.backButton}>
+                            <Ionicons name="arrow-back" size={24} color="#fff" />
+                        </TouchableOpacity>
+                        <View>
+                            <Text style={styles.headerTitle}>Staff logs for {customer?.name}</Text>
+                        </View>
+                    </View>
+
                     {/* Shop Information Card */}
                     <View style={styles.card}>
                         <View style={styles.cardHeaderRow}>
@@ -315,7 +322,7 @@ const AdminStaffDetailScreen = () => {
                 </ScrollView>
             </SafeAreaView>
 
-            <AdminBottomTab 
+            <AdminBottomTab
                 activeView="customers" // Since it's reached from the Members tab
                 onTabPress={(screen) => navigation.navigate('AdminPanel', { screen })}
                 onLogout={logout}
@@ -331,9 +338,9 @@ const styles = StyleSheet.create({
     headerContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        marginBottom: 10,
+        paddingHorizontal: 5,
+        paddingVertical: 6,
+        marginBottom: 15,
     },
     backButton: {
         marginRight: 10,
@@ -345,7 +352,8 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     scrollContent: {
-        padding: 16,
+        paddingTop: 2,
+        paddingHorizontal: 16,
         paddingBottom: 140,
     },
     card: {

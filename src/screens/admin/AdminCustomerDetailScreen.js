@@ -22,6 +22,7 @@ import { customerAPI, shopAPI } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import AdminBottomTab from '../../components/admin/AdminBottomTab';
 import { Skeleton } from '../../components/ui';
+import AdminTopBar from '../../components/admin/AdminTopBar';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Print from 'expo-print';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -459,6 +460,7 @@ const AdminCustomerDetailScreen = ({ route, customer: propCustomer, shopId: prop
             colors={['#4c1d95', '#1e40af']} // Deep purple to blue gradient
             style={styles.container}
         >
+            <AdminTopBar onBack={handleBack} />
             <SafeAreaView>
                 <TouchableWithoutFeedback onPress={() => { setShowTypeDropdown(false); setShowPerPageDropdown(false); Keyboard.dismiss(); }}>
                     <ScrollView
@@ -878,7 +880,7 @@ const AdminCustomerDetailScreen = ({ route, customer: propCustomer, shopId: prop
 
             {/* Removed internal toast UI as it's now handled by AdminPanelScreen */}
 
-            <AdminBottomTab 
+            <AdminBottomTab
                 activeView="customers"
                 onTabPress={(screen) => navigation.navigate('AdminPanel', { screen })}
                 onLogout={logout}
