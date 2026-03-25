@@ -337,7 +337,7 @@ const ServiceLedgerDetailScreen = () => {
                             <Ionicons name="arrow-back" size={24} color="#2563EB" />
                         </TouchableOpacity>
                         <View>
-                            <Text style={styles.headerTitle}>{customer?.name || 'Service Details'}</Text>
+                            <Text style={styles.headerTitle}>Service log for {customer?.name || 'Service Details'}</Text>
                             <Text style={styles.headerSubtitle}>{shopDetails?.name || 'Shop Details'}</Text>
                         </View>
                     </View>

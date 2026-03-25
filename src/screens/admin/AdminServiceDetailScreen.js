@@ -15,6 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { serviceAPI, shopAPI } from '../../api';
+import { useAuth } from '../../context/AuthContext';
+import AdminBottomTab from '../../components/admin/AdminBottomTab';
 
 const { width } = Dimensions.get('window');
 
@@ -27,6 +29,7 @@ const AdminServiceDetailScreen = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [shopDetails, setShopDetails] = useState(null);
+    const { logout } = useAuth();
 
     // Activity Logs / Earnings state
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -313,6 +316,12 @@ const AdminServiceDetailScreen = () => {
 
                 </ScrollView>
             </SafeAreaView>
+
+            <AdminBottomTab 
+                activeView="customers" // Since it's reached from the Members tab
+                onTabPress={(screen) => navigation.navigate('AdminPanel', { screen })}
+                onLogout={logout}
+            />
         </LinearGradient>
     );
 };

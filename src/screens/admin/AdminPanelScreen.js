@@ -10,6 +10,7 @@ import AdminUserManagement from './AdminUserManagement';
 import AdminShopManagement from './AdminShopManagement';
 import AdminCustomerManagement from './AdminCustomerManagement';
 import AdminRoleManagement from './AdminRoleManagement';
+import AdminBottomTab from '../../components/admin/AdminBottomTab';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -18,12 +19,23 @@ const AdminPanelScreen = () => {
     const [activeView, setActiveView] = useState('dashboard');
     const { user, logout, switchRole } = useAuth();
     const navigation = useNavigation();
+    const route = useRoute();
     const [isKeyboardVisible, setKeyboardVisible] = useState(false);
     const [showRoleDropdown, setShowRoleDropdown] = useState(false);
     const [stats, setStats] = useState({ total_users: 0 });
     const [refreshingStats, setRefreshingStats] = useState(false);
     const insets = useSafeAreaInsets();
-    const route = useRoute(); // Need route for params
+
+    // Handle view switching via navigation params
+    useFocusEffect(
+        useCallback(() => {
+            if (route.params?.screen) {
+                setActiveView(route.params.screen);
+                // Clear the param so it doesn't stick
+                navigation.setParams({ screen: undefined });
+            }
+        }, [route.params?.screen])
+    );
 
     // Toast notification state
     const [toastMessage, setToastMessage] = useState('');
@@ -318,66 +330,11 @@ const AdminPanelScreen = () => {
 
             {/* Bottom Navigation - Fixed - Matches Web Mobile */}
             {!isKeyboardVisible && (
-                <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 10), height: 65 + Math.max(insets.bottom, 10) }]}>
-                    <View style={styles.navContainer}>
-                        {navigationItems.map((item) => {
-                            const isActive = activeView === item.id;
-                            const IconLib = item.Lib || Ionicons;
-                            return (
-                                <TouchableOpacity
-                                    key={item.id}
-                                    style={styles.navItemWrapper}
-                                    onPress={() => setActiveView(item.id)}
-                                >
-                                    {isActive ? (
-                                        <LinearGradient
-                                            colors={['#F3E8FF', '#EFF6FF']} // purple-50 to blue-50
-                                            style={styles.navItemActiveGradient}
-                                        >
-                                            <IconLib
-                                                name={item.icon}
-                                                size={20}
-                                                color="#7C3AED"
-                                            />
-                                            <Text style={styles.navTextActive}>
-                                                {item.name}
-                                            </Text>
-                                        </LinearGradient>
-                                    ) : (
-                                        <View style={styles.navItem}>
-                                            <IconLib
-                                                name={item.icon}
-                                                size={20}
-                                                color="#6B7280"
-                                            />
-                                            <Text style={styles.navText}>
-                                                {item.name}
-                                            </Text>
-                                        </View>
-                                    )}
-                                </TouchableOpacity>
-                            );
-                        })}
-
-                        {/* Logout Button in Navbar */}
-                        <TouchableOpacity
-                            style={styles.navItemWrapper}
-                            onPress={handleLogout}
-                        >
-                            <View style={styles.navItem}>
-                                <Ionicons
-                                    name="log-out-outline"
-                                    size={20}
-                                    color="#EF4444"
-                                />
-                                <Text style={[styles.navText, { color: '#EF4444' }]}>
-                                    Logout
-                                </Text>
-                            </View>
-                        </TouchableOpacity>
-
-                    </View>
-                </View>
+                <AdminBottomTab 
+                    activeView={activeView}
+                    onTabPress={setActiveView}
+                    onLogout={handleLogout}
+                />
             )}
             {/* Toast Notification */}
             {toastVisible && (
@@ -524,54 +481,8 @@ const styles = StyleSheet.create({
         flex: 1,
         marginBottom: 65, // Match nav height to prevent overlap
     },
-    bottomNav: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: '#FFFFFF',
-        borderTopWidth: 1,
-        borderTopColor: '#E5E7EB',
-        paddingBottom: Platform.OS === 'ios' ? 20 : 0,
-        elevation: 8,
-        height: 65, // Slightly taller for better touch targets
-        zIndex: 1000, // Ensure it stays on top
-    },
-    navContainer: {
-        flexDirection: 'row',
-        height: '100%',
-        alignItems: 'center',
-    },
-    navItemWrapper: {
-        flex: 1,
-        height: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    navItem: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%',
-        height: '100%',
-        gap: 4,
-    },
-    navItemActiveGradient: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%',
-        height: '100%',
-        gap: 4,
-    },
-    navText: {
-        fontSize: 10,
-        fontWeight: '500',
-        color: '#6B7280',
-    },
-    navTextActive: {
-        fontSize: 10,
-        fontWeight: 'bold',
-        color: '#7C3AED',
-    },
+    // Bottom navigation styles removed - replaced by AdminBottomTab component
+
 
     // Role Dropdown Styles
     roleDropdown: {

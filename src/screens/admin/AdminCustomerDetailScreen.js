@@ -19,6 +19,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { customerAPI, shopAPI } from '../../api';
+import { useAuth } from '../../context/AuthContext';
+import AdminBottomTab from '../../components/admin/AdminBottomTab';
 import { Skeleton } from '../../components/ui';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Print from 'expo-print';
@@ -34,6 +36,7 @@ import { saveFileToDevice } from '../../utils/downloadHelper';
 const AdminCustomerDetailScreen = ({ route, customer: propCustomer, shopId: propShopId, onBack, showToast: propShowToast }) => {
 
     const navigation = useNavigation();
+    const { logout } = useAuth();
 
     // Determine source of data (props or route)
     const customer = propCustomer || route?.params?.customer;
@@ -875,6 +878,11 @@ const AdminCustomerDetailScreen = ({ route, customer: propCustomer, shopId: prop
 
             {/* Removed internal toast UI as it's now handled by AdminPanelScreen */}
 
+            <AdminBottomTab 
+                activeView="customers"
+                onTabPress={(screen) => navigation.navigate('AdminPanel', { screen })}
+                onLogout={logout}
+            />
         </LinearGradient>
     );
 };

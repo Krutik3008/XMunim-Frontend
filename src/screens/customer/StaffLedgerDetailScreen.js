@@ -556,7 +556,7 @@ const StaffLedgerDetailScreen = () => {
                             <Ionicons name="arrow-back" size={24} color="#2563EB" />
                         </TouchableOpacity>
                         <View>
-                            <Text style={styles.headerTitle}>{staff?.name || 'Staff Details'}</Text>
+                            <Text style={styles.headerTitle}>Staff log for {staff?.name || 'Staff Details'}</Text>
                             <Text style={styles.headerSubtitle}>{shopDetails?.name || 'Business Details'}</Text>
                         </View>
                     </View>
