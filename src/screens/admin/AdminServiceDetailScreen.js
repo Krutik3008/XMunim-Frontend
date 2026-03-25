@@ -10,7 +10,6 @@ import {
     RefreshControl,
     Linking
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -228,10 +227,10 @@ const AdminServiceDetailScreen = () => {
                 <AdminTopBar
                     onBack={() => navigation.navigate('AdminPanel', { screen: 'customers' })}
                 />
-                <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <ActivityIndicator size="large" color="#fff" />
                     <Text style={{ color: '#fff', marginTop: 12 }}>Loading Service Details...</Text>
-                </SafeAreaView>
+                </View>
             </LinearGradient>
         );
     }
@@ -241,7 +240,7 @@ const AdminServiceDetailScreen = () => {
             <AdminTopBar
                 onBack={() => navigation.navigate('AdminPanel', { screen: 'customers' })}
             />
-            <SafeAreaView style={{ flex: 1 }}>
+            <View style={{ flex: 1 }}>
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(false)} tintColor="#fff" />}
@@ -318,7 +317,7 @@ const AdminServiceDetailScreen = () => {
 
 
                 </ScrollView>
-            </SafeAreaView>
+            </View>
 
             <AdminBottomTab
                 activeView="customers" // Since it's reached from the Members tab
@@ -338,6 +337,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 5,
         paddingVertical: 6,
+        marginTop: 15,
         marginBottom: 15,
     },
     backButton: {
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     scrollContent: {
-        paddingTop: 2,
+        paddingTop: 0,
         paddingHorizontal: 16,
         paddingBottom: 140,
     },
