@@ -895,7 +895,7 @@ const ShopOwnerDashboardScreen = () => {
                             adjustsFontSizeToFit
                             minimumFontScale={0.5}
                         >
-                            {dashboardStats?.total_customers || customers.length || 0}
+                            {dashboardStats?.total_members || (customers.length + services.length + staff.length) || 0}
                         </Text>
                         <Text style={styles.statLabel}>Members</Text>
                     </View>
@@ -925,7 +925,7 @@ const ShopOwnerDashboardScreen = () => {
                             adjustsFontSizeToFit
                             minimumFontScale={0.5}
                         >
-                            ₹{Math.abs(customers.reduce((acc, c) => acc + (c.balance < 0 ? c.balance : 0), 0)).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                            ₹{(dashboardStats?.total_pending_dues || Math.abs(customers.reduce((acc, c) => acc + (c.balance < 0 ? c.balance : 0), 0))).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
                         </Text>
                         <Text style={styles.statLabel}>Pending Dues</Text>
 
@@ -947,9 +947,9 @@ const ShopOwnerDashboardScreen = () => {
                             adjustsFontSizeToFit
                             minimumFontScale={0.5}
                         >
-                            {customers.filter(c => c.balance < 0).length}
+                            {dashboardStats?.customers_with_dues || customers.filter(c => c.balance < 0).length}
                         </Text>
-                        <Text style={styles.statLabel2}>Total Customers With Dues</Text>
+                        <Text style={styles.statLabel2}>Total Members With Dues</Text>
                     </View>
                 </View>
 
