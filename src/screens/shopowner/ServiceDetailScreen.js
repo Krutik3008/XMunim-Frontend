@@ -179,11 +179,17 @@ const ServiceDetailScreen = ({ route, navigation }) => {
 
     const calculateDayTotal = (entry) => {
         if (!entry || typeof entry !== 'object') return 0;
-        if (entry.hours_log && Array.isArray(entry.hours_log) && entry.hours_log.length > 0) {
-            return entry.hours_log.reduce((sum, log) => sum + (log.hours * log.rate), 0);
+        const entryRateType = entry.rate_type || (entry.hours > 0 ? 'hourly' : 'daily');
+        
+        if (entryRateType === 'hourly') {
+            if (entry.hours_log && Array.isArray(entry.hours_log) && entry.hours_log.length > 0) {
+                return entry.hours_log.reduce((sum, log) => sum + (log.hours * log.rate), 0);
+            }
+            return (entry.hours || 0) * (entry.rate || 0);
+        } else {
+            // Daily or Monthly (calculated as daily here)
+            return entry.rate || 0;
         }
-        // If it has hours, use them. If not, it's a daily entry (1 unit).
-        return (entry.hours || 1) * (entry.rate || 0);
     };
 
     const calculateTotal = () => {
@@ -206,6 +212,10 @@ const ServiceDetailScreen = ({ route, navigation }) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
+        let total = 0;
+        let totalHrs = 0;
+
+        // If global mode is monthly, it takes precedence for the base calculation
         if (savedRateType === 'monthly') {
             let absentCount = 0;
             Object.keys(serviceLog).forEach(dateStr => {
@@ -214,48 +224,32 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                 }
             });
             const dailyRate = globalRate / daysInMonth;
-            const reduction = absentCount * dailyRate;
-            setCalculatedTotal(Math.max(0, globalRate - reduction));
-            setTotalHoursInMonth(0);
-        } else if (savedRateType === 'hourly') {
-            let total = 0;
-            let totalHrs = 0;
+            total = Math.max(0, globalRate - (absentCount * dailyRate));
+        } else {
+            // Hybrid Daily/Hourly calculation
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateStr = `${year}-${monthStr}-${day.toString().padStart(2, '0')}`;
                 const status = getDateStatus(dateStr);
+                
                 if (status === 'present') {
                     const entry = serviceLog[dateStr];
                     if (typeof entry === 'object' && entry !== null) {
-                        total += calculateDayTotal(entry);
-                        totalHrs += (entry.hours || 0);
+                        const dayAmt = calculateDayTotal(entry);
+                        total += dayAmt;
+                        if ((entry.rate_type || (entry.hours > 0 ? 'hourly' : 'daily')) === 'hourly') {
+                            totalHrs += (entry.hours || 0);
+                        }
+                    } else if (typeof entry === 'string') {
+                        // Legacy string status: treat as daily
+                        const entryDate = new Date(dateStr);
+                        entryDate.setHours(0, 0, 0, 0);
+                        total += (entryDate < today ? (customer.service_rate || globalRate) : globalRate);
                     }
                 }
             }
-            setCalculatedTotal(total);
-            setTotalHoursInMonth(totalHrs);
-        } else {
-            // Daily: Incremental total based on "present"
-            let total = 0;
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dateStr = `${year}-${monthStr}-${day.toString().padStart(2, '0')}`;
-                const status = getDateStatus(dateStr);
-                if (status === 'present') {
-                    const entryDate = new Date(dateStr);
-                    entryDate.setHours(0, 0, 0, 0);
-                    if (entryDate < today) {
-                        const entry = serviceLog[dateStr];
-                        const storedRate = (typeof entry === 'object' && entry !== null && entry.rate !== undefined) 
-                            ? entry.rate 
-                            : (customer.service_rate || globalRate); 
-                        total += storedRate;
-                    } else {
-                        total += globalRate;
-                    }
-                }
-            }
-            setCalculatedTotal(total);
-            setTotalHoursInMonth(0);
         }
+        setCalculatedTotal(total);
+        setTotalHoursInMonth(totalHrs);
     };
 
     const handleSaveRateSettings = async () => {
@@ -296,14 +290,19 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                 if (entryDate >= today) {
                     // Today or Future: ALWAYS use the new rate being saved
                     entry.rate = parseFloat(serviceRate);
-                }
+                    entry.rate_type = serviceRateType; // Persist global rate type into the entry
 
-                // If switching to HOURLY, ensure present entries have hours
-                if (serviceRateType === 'hourly' && entry.status === 'present' && (!entry.hours || entry.hours === 0)) {
-                    const defaultHrs = parseFloat(serviceDailyHours) || 8;
-                    entry.hours = defaultHrs;
-                    if (!entry.hours_log || entry.hours_log.length === 0) {
-                        entry.hours_log = [{ hours: defaultHrs, rate: entry.rate }];
+                    // If switching to HOURLY, ensure present entries have hours
+                    if (serviceRateType === 'hourly' && entry.status === 'present' && (!entry.hours || entry.hours === 0)) {
+                        const defaultHrs = parseFloat(serviceDailyHours) || 8;
+                        entry.hours = defaultHrs;
+                        if (!entry.hours_log || entry.hours_log.length === 0) {
+                            entry.hours_log = [{ hours: defaultHrs, rate: entry.rate }];
+                        }
+                    } else if (serviceRateType !== 'hourly') {
+                        // Reset hourly fields if switching away from hourly for future dates
+                        delete entry.hours;
+                        delete entry.hours_log;
                     }
                 }
                 
@@ -360,13 +359,15 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                 updatedLog[dateStr] = {
                     status: newStatus,
                     rate: currentRate,
+                    rate_type: 'hourly',
                     hours: defaultHrs,
                     hours_log: [{ hours: defaultHrs, rate: currentRate }]
                 };
             } else {
                 updatedLog[dateStr] = {
                     status: newStatus,
-                    rate: currentRate
+                    rate: currentRate,
+                    rate_type: serviceRateType // Store current global rate type (daily/monthly)
                 };
             }
         }
@@ -452,6 +453,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
             updatedLog[dateStr] = {
                 status: 'present',
                 rate: currentRate,
+                rate_type: 'hourly',
                 hours: hours,
                 hours_log: [{ hours: hours, rate: currentRate }]
             };
@@ -475,7 +477,8 @@ const ServiceDetailScreen = ({ route, navigation }) => {
         const updatedLog = { ...serviceLog };
         updatedLog[dateStr] = {
             status: 'absent',
-            rate: parseFloat(serviceRate)
+            rate: parseFloat(serviceRate),
+            rate_type: serviceRateType
         };
         setServiceLog(updatedLog);
         setShowHoursModal(false);
