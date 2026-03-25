@@ -268,7 +268,7 @@ const ServiceLedgerDetailScreen = () => {
                             >
                                 <Text style={styles.dayText}>{day}</Text>
                                 <View style={styles.statusIndicator}>
-                                    {status === 'present' && customer?.service_rate_type === 'hourly' && getDateHours(dateStr) > 0 ? (
+                                    {status === 'present' && getDateHours(dateStr) > 0 ? (
                                         <Text style={{ fontSize: 10, color: '#059669', fontWeight: '700' }}>{getDateHours(dateStr)}h</Text>
                                     ) : status === 'present' ? (
                                         <Ionicons name="checkmark" size={14} color="#059669" />

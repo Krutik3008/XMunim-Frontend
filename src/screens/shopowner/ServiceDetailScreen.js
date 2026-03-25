@@ -182,6 +182,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
         if (entry.hours_log && Array.isArray(entry.hours_log) && entry.hours_log.length > 0) {
             return entry.hours_log.reduce((sum, log) => sum + (log.hours * log.rate), 0);
         }
+        // If it has hours, use them. If not, it's a daily entry (1 unit).
         return (entry.hours || 1) * (entry.rate || 0);
     };
 
@@ -278,34 +279,35 @@ const ServiceDetailScreen = ({ route, navigation }) => {
 
         setIsSavingRate(true);
         try {
-            // Migration: 
-            // 1. Convert legacy strings to objects using previous rate
-            // 2. Update Today/Future entries to use the NEW rate
             const migratedLog = { ...serviceLog };
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
             Object.keys(migratedLog).forEach(dateStr => {
-                const entry = migratedLog[dateStr];
+                let entry = migratedLog[dateStr];
                 const entryDate = new Date(dateStr);
                 entryDate.setHours(0, 0, 0, 0);
 
+                // Ensure it's an object first
+                if (typeof entry === 'string') {
+                    entry = { status: entry, rate: customer.service_rate || parseFloat(serviceRate) };
+                }
+
                 if (entryDate >= today) {
                     // Today or Future: ALWAYS use the new rate being saved
-                    if (typeof entry === 'object' && entry !== null) {
-                        migratedLog[dateStr] = { ...entry, rate: parseFloat(serviceRate) };
-                    } else if (typeof entry === 'string') {
-                        migratedLog[dateStr] = { status: entry, rate: parseFloat(serviceRate) };
-                    }
-                } else if (typeof entry === 'string') {
-                    // Past Legacy string: Use previous saved rate (customer.service_rate)
-                    // This "locks" the past price before the new one takes over
-                    migratedLog[dateStr] = {
-                        status: entry,
-                        rate: customer.service_rate || parseFloat(serviceRate)
-                    };
+                    entry.rate = parseFloat(serviceRate);
                 }
-                // Past objects stay as they are (preserving their historical rate)
+
+                // If switching to HOURLY, ensure present entries have hours
+                if (serviceRateType === 'hourly' && entry.status === 'present' && (!entry.hours || entry.hours === 0)) {
+                    const defaultHrs = parseFloat(serviceDailyHours) || 8;
+                    entry.hours = defaultHrs;
+                    if (!entry.hours_log || entry.hours_log.length === 0) {
+                        entry.hours_log = [{ hours: defaultHrs, rate: entry.rate }];
+                    }
+                }
+                
+                migratedLog[dateStr] = entry;
             });
 
             const updateData = {
@@ -588,7 +590,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                             >
                                 <Text style={[styles.dayText, isFuture && { color: '#9CA3AF' }]}>{day}</Text>
                                 <View style={styles.statusIndicator}>
-                                    {status === 'present' && serviceRateType === 'hourly' && getDateHours(dateStr) > 0 ? (
+                                    {status === 'present' && getDateHours(dateStr) > 0 ? (
                                         <Text style={{ fontSize: 10, color: '#059669', fontWeight: '700' }}>{getDateHours(dateStr)}h</Text>
                                     ) : status === 'present' ? (
                                         <Ionicons name="checkmark" size={14} color="#059669" />
