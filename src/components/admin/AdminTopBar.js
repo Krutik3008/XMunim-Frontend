@@ -2,12 +2,15 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { adminAPI } from '../../api';
 
-const AdminTopBar = ({ title, onBack, stats: propStats }) => {
-    const { user } = useAuth();
+const AdminTopBar = ({ title, onBack, stats: propStats, hideStatusBar }) => {
+    const { user, switchRole } = useAuth();
+    const navigation = useNavigation();
     const [stats, setStats] = React.useState(propStats || { total_users: 0 });
+    const [showRoleDropdown, setShowRoleDropdown] = React.useState(false);
 
     React.useEffect(() => {
         if (!propStats) {
@@ -21,6 +24,24 @@ const AdminTopBar = ({ title, onBack, stats: propStats }) => {
             setStats(response.data || response); // Handle case where response itself is the data
         } catch (error) {
             console.error('Error fetching stats in TopBar:', error);
+        }
+    };
+
+    const handleRoleSwitch = async (role) => {
+        setShowRoleDropdown(false);
+        if (role !== user?.active_role) {
+            const result = await switchRole(role);
+            if (result.success) {
+                const message = `Role switched to ${role === 'customer' ? 'User' : 'Business'}`;
+                if (role === 'customer') {
+                    navigation.reset({ index: 0, routes: [{ name: 'CustomerDashboard', params: { successMessage: message } }] });
+                } else if (role === 'shop_owner') {
+                    navigation.reset({ index: 0, routes: [{ name: 'ShopOwnerDashboard', params: { successMessage: message } }] });
+                }
+            } else {
+                console.error('Role switch failed', result.message);
+                // Can't show toast easily without props, but could use Alert
+            }
         }
     };
 
@@ -48,7 +69,10 @@ const AdminTopBar = ({ title, onBack, stats: propStats }) => {
                         </Text>
                     </View>
 
-                    <View style={styles.profileContainer}>
+                    <TouchableOpacity 
+                        style={styles.profileContainer}
+                        onPress={() => setShowRoleDropdown(!showRoleDropdown)}
+                    >
                         <LinearGradient
                             colors={['#7C3AED', '#2563EB']}
                             style={styles.avatarGradient}
@@ -60,7 +84,7 @@ const AdminTopBar = ({ title, onBack, stats: propStats }) => {
                         <Text style={styles.headerUserName} numberOfLines={1}>
                             {user?.name ? user.name.split(' ')[0] : 'Admin'}
                         </Text>
-                    </View>
+                    </TouchableOpacity>
                 </View>
             </View>
 
@@ -80,6 +104,38 @@ const AdminTopBar = ({ title, onBack, stats: propStats }) => {
                     {new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
                 </Text>
             </View>
+
+            {/* Role Dropdown */}
+            {showRoleDropdown && (
+                <>
+                    <TouchableOpacity
+                        style={styles.backdrop}
+                        activeOpacity={1}
+                        onPress={() => setShowRoleDropdown(false)}
+                    />
+                    <View style={styles.roleDropdown}>
+                        <View style={styles.dropdownHeader}>
+                            <Text style={styles.dropdownUserName}>{user?.name}</Text>
+                            <Text style={styles.dropdownUserRole}>Super Administrator</Text>
+                        </View>
+                        <View style={styles.dropdownDivider} />
+                        <TouchableOpacity
+                            style={[styles.roleOption, user?.active_role === 'customer' && styles.roleOptionActive]}
+                            onPress={() => handleRoleSwitch('customer')}
+                        >
+                            <Ionicons name="person-outline" size={18} color="#3B82F6" />
+                            <Text style={styles.roleOptionText}>User View</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.roleOption, user?.active_role === 'shop_owner' && styles.roleOptionActive]}
+                            onPress={() => handleRoleSwitch('shop_owner')}
+                        >
+                            <Ionicons name="storefront-outline" size={18} color="#8B5CF6" />
+                            <Text style={styles.roleOptionText}>Business View</Text>
+                        </TouchableOpacity>
+                    </View>
+                </>
+            )}
         </View>
     );
 };
@@ -192,6 +248,68 @@ const styles = StyleSheet.create({
     dateText: {
         fontSize: 12,
         color: '#6B7280',
+    },
+    
+    // Role Dropdown Styles
+    roleDropdown: {
+        position: 'absolute',
+        top: 60,
+        right: 16,
+        width: 200,
+        backgroundColor: 'white',
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 10,
+        zIndex: 100,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    dropdownHeader: {
+        padding: 12,
+        backgroundColor: '#F9FAFB',
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+    },
+    dropdownUserName: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#111827',
+    },
+    dropdownUserRole: {
+        fontSize: 12,
+        color: '#6B7280',
+        marginTop: 2,
+    },
+    dropdownDivider: {
+        height: 1,
+        backgroundColor: '#E5E7EB',
+    },
+    roleOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+    },
+    roleOptionActive: {
+        backgroundColor: '#EFF6FF',
+    },
+    roleOptionText: {
+        fontSize: 14,
+        color: '#374151',
+        marginLeft: 12,
+    },
+    backdrop: {
+        position: 'absolute',
+        top: -1000,
+        left: -1000,
+        right: -1000,
+        bottom: -1000,
+        zIndex: 90,
+        backgroundColor: 'transparent',
     },
 });
 
