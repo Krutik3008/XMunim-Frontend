@@ -8,7 +8,8 @@ import {
     ActivityIndicator,
     Dimensions,
     RefreshControl,
-    Linking
+    Linking,
+    BackHandler
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,10 +21,12 @@ import AdminTopBar from '../../components/admin/AdminTopBar';
 
 const { width } = Dimensions.get('window');
 
-const AdminServiceDetailScreen = () => {
+const AdminServiceDetailScreen = ({ route, customer: propCustomer, shopId: propShopId, onBack }) => {
     const navigation = useNavigation();
-    const route = useRoute();
-    const { customer: initialCustomer, shopId } = route.params;
+    
+    // Determine source of data (props or route)
+    const initialCustomer = propCustomer || route?.params?.customer;
+    const shopId = propShopId || route?.params?.shopId;
 
     const [customer, setCustomer] = useState(initialCustomer);
     const [loading, setLoading] = useState(true);
@@ -38,6 +41,23 @@ const AdminServiceDetailScreen = () => {
     const [serviceLog, setServiceLog] = useState(initialCustomer?.service_log || {});
     const [calculatedTotal, setCalculatedTotal] = useState(0);
     const [totalHoursInMonth, setTotalHoursInMonth] = useState(0);
+
+    const handleBack = () => {
+        if (onBack) {
+            onBack();
+        } else {
+            navigation.navigate('AdminPanel', { screen: 'customers' });
+        }
+    };
+
+    // Android hardware back button
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            handleBack();
+            return true;
+        });
+        return () => backHandler.remove();
+    }, [onBack, navigation]);
 
     useEffect(() => {
         loadData();
@@ -238,7 +258,7 @@ const AdminServiceDetailScreen = () => {
     return (
         <LinearGradient colors={['#4c1d95', '#1e40af']} style={styles.container}>
             <AdminTopBar
-                onBack={() => navigation.navigate('AdminPanel', { screen: 'customers' })}
+                onBack={handleBack}
             />
             <View style={{ flex: 1 }}>
                 <ScrollView
