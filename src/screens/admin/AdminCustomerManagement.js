@@ -207,17 +207,19 @@ const AdminCustomerManagement = ({ showToast }) => {
                             </Text>
                         </View>
                     </View>
-                    <View style={[
-                        styles.balancePill,
-                        { backgroundColor: isCredit ? '#ECFDF5' : isOwes ? '#FEF2F2' : '#F3F4F6' }
-                    ]}>
-                        <Text style={[
-                            styles.balanceText,
-                            isCredit ? { color: '#10B981' } : isOwes ? { color: '#EF4444' } : { color: '#374151' } // Green : Red : Gray
+                    {item.member_type !== 'staff' && item.member_type !== 'service' && (
+                        <View style={[
+                            styles.balancePill,
+                            { backgroundColor: isCredit ? '#ECFDF5' : isOwes ? '#FEF2F2' : '#F3F4F6' }
                         ]}>
-                            ₹{Math.abs(balance).toFixed(0)}
-                        </Text>
-                    </View>
+                            <Text style={[
+                                styles.balanceText,
+                                isCredit ? { color: '#10B981' } : isOwes ? { color: '#EF4444' } : { color: '#374151' } // Green : Red : Gray
+                            ]}>
+                                ₹{Math.abs(balance).toFixed(0)}
+                            </Text>
+                        </View>
+                    )}
                 </View>
 
                 {/* Sub-Header: Phone, Shop, Credit Badge */}
@@ -234,17 +236,19 @@ const AdminCustomerManagement = ({ showToast }) => {
                             </View>
                         )}
                     </View>
-                    <View style={[
-                        styles.creditBadge,
-                        isCredit ? { backgroundColor: '#000000' } : isOwes ? { backgroundColor: '#EF4444' } : { backgroundColor: '#F3F4F6' }
-                    ]}>
-                        <Text style={[
-                            styles.creditBadgeText,
-                            isClear ? { color: '#000000' } : { color: '#FFFFFF' }
+                    {item.member_type !== 'staff' && item.member_type !== 'service' && (
+                        <View style={[
+                            styles.creditBadge,
+                            isCredit ? { backgroundColor: '#000000' } : isOwes ? { backgroundColor: '#EF4444' } : { backgroundColor: '#F3F4F6' }
                         ]}>
-                            {isCredit ? 'Credit' : isOwes ? 'Dues' : 'Clear'}
-                        </Text>
-                    </View>
+                            <Text style={[
+                                styles.creditBadgeText,
+                                isClear ? { color: '#000000' } : { color: '#FFFFFF' }
+                            ]}>
+                                {isCredit ? 'Credit' : isOwes ? 'Dues' : 'Clear'}
+                            </Text>
+                        </View>
+                    )}
                 </View>
 
                 {/* Details Section */}
