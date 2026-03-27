@@ -11,7 +11,12 @@ import {
     Platform,
     RefreshControl,
     Linking,
-    Alert
+    Alert,
+    Modal,
+    TextInput,
+    KeyboardAvoidingView,
+    TouchableWithoutFeedback,
+    Keyboard
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,6 +42,68 @@ const ServiceLedgerDetailScreen = () => {
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+    const [showPaymentRequestModal, setShowPaymentRequestModal] = useState(false);
+    const [requestType, setRequestType] = useState('Payment Request');
+    const [reminderMessage, setReminderMessage] = useState('');
+    const [isSending, setIsSending] = useState(false);
+    const [showRequestTypeDropdown, setShowRequestTypeDropdown] = useState(false);
+
+    // Toast notification state
+    const [toastMessage, setToastMessage] = useState('');
+    const [toastVisible, setToastVisible] = useState(false);
+    const [toastType, setToastType] = useState('success');
+    const toastAnim = useRef(new Animated.Value(0)).current;
+    const toastTimer = useRef(null);
+
+    const showToast = (message, type = 'success') => {
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+
+        setToastMessage(message);
+        setToastType(type);
+        setToastVisible(true);
+        Animated.spring(toastAnim, {
+            toValue: 1,
+            useNativeDriver: true,
+            friction: 8,
+            tension: 40
+        }).start();
+
+        toastTimer.current = setTimeout(() => {
+            Animated.timing(toastAnim, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            }).start(() => setToastVisible(false));
+        }, 3000);
+    };
+
+    const renderToast = () => {
+        if (!toastVisible) return null;
+
+        return (
+            <Animated.View
+                style={[
+                    styles.toastContainer,
+                    {
+                        opacity: toastAnim,
+                        transform: [{
+                            translateY: toastAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [50, 0]
+                            })
+                        }]
+                    }
+                ]}
+            >
+                <View style={styles.toastContent}>
+                    <View style={[styles.toastIcon, { backgroundColor: toastType === 'error' ? '#EF4444' : '#10B981' }]}>
+                        <Ionicons name={toastType === 'error' ? "alert-circle" : "checkmark-circle"} size={20} color="#FFFFFF" />
+                    </View>
+                    <Text style={styles.toastText}>{toastMessage}</Text>
+                </View>
+            </Animated.View>
+        );
+    };
 
     const loadData = async (showLoading = true) => {
         if (showLoading) setLoading(true);
@@ -113,7 +180,7 @@ const ServiceLedgerDetailScreen = () => {
                     absentCount++;
                 }
             });
-            
+
             const dailyRate = globalRate / daysInMonth;
             const reduction = absentCount * dailyRate;
             setCalculatedTotal(Math.max(0, globalRate - reduction));
@@ -140,13 +207,13 @@ const ServiceLedgerDetailScreen = () => {
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateStr = `${year}-${monthStr}-${day.toString().padStart(2, '0')}`;
                 const status = getDateStatus(dateStr);
-                
+
                 if (status === 'present') {
                     // Try to use stored rate if available, else fallback to current customer.service_rate
                     const entry = serviceLog[dateStr];
-                    const storedRate = (typeof entry === 'object' && entry !== null && entry.rate !== undefined) 
-                        ? entry.rate 
-                        : globalRate; 
+                    const storedRate = (typeof entry === 'object' && entry !== null && entry.rate !== undefined)
+                        ? entry.rate
+                        : globalRate;
                     total += storedRate;
                 }
             }
@@ -182,7 +249,7 @@ const ServiceLedgerDetailScreen = () => {
 
         if (!upiId) {
             Alert.alert(
-                'UPI ID Not Found', 
+                'UPI ID Not Found',
                 'This business has not set up their UPI ID yet. Please contact the owner to make a payment.'
             );
             return;
@@ -196,7 +263,7 @@ const ServiceLedgerDetailScreen = () => {
                 await Linking.openURL(upiUrl);
             } else {
                 Alert.alert(
-                    'No UPI App Found', 
+                    'No UPI App Found',
                     'Could not find any UPI apps (PhonePe, GPay, Paytm, etc.) on this device.'
                 );
             }
@@ -205,6 +272,151 @@ const ServiceLedgerDetailScreen = () => {
             Alert.alert('Error', 'Failed to open UPI app. Please try again later.');
         }
     };
+
+    const handleSendPaymentRequest = async () => {
+        if (!shopId) {
+            Alert.alert('Error', 'Shop information not found.');
+            return;
+        }
+
+        const amount = calculatedTotal.toFixed(2);
+        const shopName = shopDetails?.name || 'Shop';
+        const memberName = customer?.name || 'Member';
+        const monthName = currentMonth.toLocaleString('default', { month: 'long' });
+
+        let messageBody = '';
+        let title = 'Payment Request';
+
+        if (requestType === 'Payment Request') {
+            title = 'Service Payment Request';
+            messageBody = `Payment request of ₹${amount} for ${monthName} ${currentMonth.getFullYear()} by ${memberName}`;
+        } else if (requestType === 'Advance Request') {
+            title = 'Advance Payment Request';
+            messageBody = `Advance request of ₹${amount} by ${memberName}`;
+        }
+
+        if (reminderMessage.trim()) {
+            messageBody += `\nNote: ${reminderMessage}`;
+        }
+
+        setIsSending(true);
+        try {
+            await customerDashboardAPI.notifyOwner(shopId, {
+                title: title,
+                body: messageBody,
+                method: "Push Notification"
+            });
+            setShowPaymentRequestModal(false);
+            showToast('Payment request sent to business owner.');
+        } catch (error) {
+            const errorMessage = error.response?.data?.detail || 'Failed to send notification';
+            setShowPaymentRequestModal(false);
+            showToast(errorMessage, 'error');
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    const renderPaymentRequestModal = () => (
+        <Modal
+            visible={showPaymentRequestModal}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowPaymentRequestModal(false)}
+        >
+            <KeyboardAvoidingView
+                style={styles.modalOverlay}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            >
+                <TouchableWithoutFeedback onPress={() => { setShowRequestTypeDropdown(false); Keyboard.dismiss(); }}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Ionicons name="time-outline" size={22} color="#2563EB" />
+                                <Text style={styles.modalTitle}>Payment Request</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowPaymentRequestModal(false)}>
+                                <Ionicons name="close-circle-outline" size={26} color="#6B7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
+                            <View style={styles.modalCard}>
+                                <Text style={styles.modalCardLabel}>Business Name</Text>
+                                <Text style={styles.modalCardValue}>{shopDetails?.name || 'N/A'}</Text>
+                                <View style={{ height: 12 }} />
+                                <Text style={styles.modalCardLabel}>Calculated Amount</Text>
+                                <Text style={[styles.modalCardValue, { color: '#2563EB', fontSize: 20 }]}>₹{calculatedTotal.toFixed(2)}</Text>
+                            </View>
+
+                            <View style={styles.formGroup}>
+                                <Text style={styles.modalLabel}>Request Type</Text>
+                                <TouchableOpacity
+                                    style={styles.dropdownTrigger}
+                                    onPress={() => setShowRequestTypeDropdown(!showRequestTypeDropdown)}
+                                >
+                                    <Text style={styles.dropdownValue}>{requestType}</Text>
+                                    <Ionicons name={showRequestTypeDropdown ? "chevron-up" : "chevron-down"} size={20} color="#6B7280" />
+                                </TouchableOpacity>
+
+                                {showRequestTypeDropdown && (
+                                    <View style={styles.dropdownMenu}>
+                                        {['Payment Request', 'Advance Request'].map((type) => (
+                                            <TouchableOpacity
+                                                key={type}
+                                                style={[styles.dropdownItem, requestType === type && styles.dropdownItemActive]}
+                                                onPress={() => {
+                                                    setRequestType(type);
+                                                    setShowRequestTypeDropdown(false);
+                                                }}
+                                            >
+                                                <Text style={[styles.dropdownItemText, requestType === type && styles.dropdownItemTextActive]}>{type}</Text>
+                                                {requestType === type && <Ionicons name="checkmark" size={18} color="#2563EB" />}
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                )}
+                            </View>
+
+                            <View style={styles.formGroup}>
+                                <Text style={styles.modalLabel}>Extra Note (Optional)</Text>
+                                <TextInput
+                                    style={styles.textInput}
+                                    placeholder="Add a message for the business owner..."
+                                    value={reminderMessage}
+                                    onChangeText={setReminderMessage}
+                                    multiline
+                                    numberOfLines={3}
+                                />
+                            </View>
+
+                            <TouchableOpacity
+                                onPress={handleSendPaymentRequest}
+                                disabled={isSending}
+                                activeOpacity={0.8}
+                            >
+                                <LinearGradient
+                                    colors={isSending ? ['#9CA3AF', '#6B7280'] : ['#3B82F6', '#2563EB']}
+                                    style={styles.sendButton}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                >
+                                    {isSending ? (
+                                        <ActivityIndicator color="#fff" size="small" />
+                                    ) : (
+                                        <>
+                                            <Ionicons name="paper-plane-outline" size={20} color="#fff" style={{ marginLeft: 8 }} />
+                                            <Text style={styles.sendButtonText}>Send Request</Text>
+                                        </>
+                                    )}
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </View>
+                </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
+        </Modal>
+    );
 
     const renderCalendar = () => {
         const year = currentMonth.getFullYear();
@@ -283,33 +495,44 @@ const ServiceLedgerDetailScreen = () => {
 
                 <View style={styles.totalCalculationBox}>
                     <Text style={styles.totalCalculationLabel}>Calculated amount for this month:</Text>
-                    <View style={styles.calculationRow}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.totalCalculationValue}>₹{calculatedTotal.toFixed(2)}</Text>
-                            {customer?.service_rate_type === 'hourly' && totalHoursInMonth > 0 ? (
-                                <Text style={styles.rateInfoText}>
-                                    Rate: ₹{customer?.service_rate || 0} / hr  |  Total: {totalHoursInMonth} hrs
-                                </Text>
-                            ) : (
-                                <Text style={styles.rateInfoText}>
-                                    Rate: ₹{customer?.service_rate || 0} / {customer?.service_rate_type || 'day'}
-                                </Text>
-                            )}
-                        </View>
-                        <TouchableOpacity 
-                            style={styles.payButton}
-                            onPress={handlePayNow}
-                            activeOpacity={0.8}
-                        >
-                            <LinearGradient
-                                colors={['#2563EB', '#1D4ED8']}
-                                style={styles.payButtonGradient}
-                            >
-                                <Ionicons name="card-outline" size={18} color="#fff" />
-                                <Text style={styles.payButtonText}>Pay Now</Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
+                    <View style={{ marginTop: 8 }}>
+                        <Text style={styles.totalCalculationValue}>₹{calculatedTotal.toFixed(2)}</Text>
+                        {customer?.service_rate_type === 'hourly' && totalHoursInMonth > 0 ? (
+                            <Text style={styles.rateInfoText}>
+                                Rate: ₹{customer?.service_rate || 0} / hr  |  Total: {totalHoursInMonth} hrs
+                            </Text>
+                        ) : (
+                            <Text style={styles.rateInfoText}>
+                                Rate: ₹{customer?.service_rate || 0} / {customer?.service_rate_type || 'day'}
+                            </Text>
+                        )}
                     </View>
+
+                    <TouchableOpacity
+                        style={[styles.payButton, { marginLeft: 0, marginTop: 16 }]}
+                        onPress={() => {
+                            if (customer?.payment_direction === 'payable') {
+                                setShowPaymentRequestModal(true);
+                            } else {
+                                handlePayNow();
+                            }
+                        }}
+                        activeOpacity={0.8}
+                    >
+                        <LinearGradient
+                            colors={['#2563EB', '#1D4ED8']}
+                            style={styles.payButtonGradient}
+                        >
+                            <Ionicons
+                                name={customer?.payment_direction === 'payable' ? "time-outline" : "card-outline"}
+                                size={18}
+                                color="#fff"
+                            />
+                            <Text style={styles.payButtonText}>
+                                {customer?.payment_direction === 'payable' ? 'Request Payment' : 'Pay Now'}
+                            </Text>
+                        </LinearGradient>
+                    </TouchableOpacity>
                 </View>
             </View>
         );
@@ -325,7 +548,7 @@ const ServiceLedgerDetailScreen = () => {
                     setShowRoleDropdown={setShowRoleDropdown}
                     handleRoleSwitch={handleRoleSwitch}
                 />
-                <ScrollView 
+                <ScrollView
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                     refreshControl={
@@ -383,10 +606,12 @@ const ServiceLedgerDetailScreen = () => {
                         {renderCalendar()}
                     </View>
                 </ScrollView>
-                <CustomerBottomNav 
-                    activeTab="ledger" 
-                    setActiveTab={(tab) => navigation.navigate('CustomerDashboard', { tab })} 
+                <CustomerBottomNav
+                    activeTab="ledger"
+                    setActiveTab={(tab) => navigation.navigate('CustomerDashboard', { tab })}
                 />
+                {renderPaymentRequestModal()}
+                {renderToast()}
             </SafeAreaView>
         </View>
     );
@@ -410,8 +635,8 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#F3F4F6',
     },
-    backButton: { 
-        marginRight: 10, 
+    backButton: {
+        marginRight: 10,
         marginLeft: -10,
     },
     headerTitle: {
@@ -552,14 +777,177 @@ const styles = StyleSheet.create({
     payButtonGradient: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 10,
+        justifyContent: 'center',
+        paddingVertical: 14,
         paddingHorizontal: 16,
+        gap: 8,
     },
     payButtonText: {
         color: '#fff',
-        fontWeight: 'bold',
+        fontWeight: '700',
+        fontSize: 16,
+        marginLeft: 0,
+    },
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: '#F3F4F6',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 20,
+        maxHeight: '80%',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#111827',
+        marginLeft: 8,
+    },
+    modalCard: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    modalCardLabel: {
+        fontSize: 12,
+        color: '#6B7280',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginBottom: 4,
+    },
+    modalCardValue: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#111827',
+    },
+    formGroup: {
+        marginBottom: 20,
+    },
+    modalLabel: {
         fontSize: 14,
-        marginLeft: 6,
+        fontWeight: '600',
+        color: '#374151',
+        marginBottom: 8,
+    },
+    dropdownTrigger: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 12,
+        padding: 12,
+    },
+    dropdownValue: {
+        fontSize: 15,
+        color: '#111827',
+    },
+    dropdownMenu: {
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 12,
+        marginTop: 4,
+        overflow: 'hidden',
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+    dropdownItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+    },
+    dropdownItemActive: {
+        backgroundColor: '#EFF6FF',
+    },
+    dropdownItemText: {
+        fontSize: 15,
+        color: '#374151',
+    },
+    dropdownItemTextActive: {
+        color: '#2563EB',
+        fontWeight: '600',
+    },
+    textInput: {
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 12,
+        padding: 12,
+        fontSize: 15,
+        color: '#111827',
+        textAlignVertical: 'top',
+        minHeight: 80,
+    },
+    sendButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+        borderRadius: 12,
+        marginTop: 10,
+    },
+    sendButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
+        marginLeft: 8,
+    },
+    // Toast Styles
+    toastContainer: {
+        position: 'absolute',
+        bottom: 100,
+        left: 20,
+        right: 20,
+        zIndex: 9999,
+    },
+    toastContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        padding: 12,
+        borderRadius: 12,
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    toastIcon: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 10,
+    },
+    toastText: {
+        fontSize: 14,
+        color: '#1F2937',
+        fontWeight: '600',
+        flex: 1,
     },
 });
 

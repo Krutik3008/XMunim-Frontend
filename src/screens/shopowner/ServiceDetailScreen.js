@@ -31,7 +31,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 const ServiceDetailScreen = ({ route, navigation }) => {
     const { customer: initialCustomer, shopId, serviceId, type } = route.params;
     const { user } = useAuth();
-    
+
     // Choose which API to use based on type
     const activeAPI = type === 'services' ? serviceAPI : (type === 'staff' ? staffAPI : customerAPI);
     const activeId = serviceId || initialCustomer?.id;
@@ -181,7 +181,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
     const calculateDayTotal = (entry) => {
         if (!entry || typeof entry !== 'object') return 0;
         const entryRateType = entry.rate_type || (entry.hours > 0 ? 'hourly' : 'daily');
-        
+
         if (entryRateType === 'hourly') {
             if (entry.hours_log && Array.isArray(entry.hours_log) && entry.hours_log.length > 0) {
                 return entry.hours_log.reduce((sum, log) => sum + (log.hours * log.rate), 0);
@@ -231,7 +231,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateStr = `${year}-${monthStr}-${day.toString().padStart(2, '0')}`;
                 const status = getDateStatus(dateStr);
-                
+
                 if (status === 'present') {
                     const entry = serviceLog[dateStr];
                     if (typeof entry === 'object' && entry !== null) {
@@ -306,7 +306,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                         delete entry.hours_log;
                     }
                 }
-                
+
                 migratedLog[dateStr] = entry;
             });
 
@@ -386,12 +386,12 @@ const ServiceDetailScreen = ({ route, navigation }) => {
 
     const openHoursModal = (dateStr) => {
         if (!customer.is_verified) {
-             showToast('First Verify the customer before changes', 'error');
-             return;
+            showToast('First Verify the customer before changes', 'error');
+            return;
         }
         if (new Date().toDateString() !== new Date(dateStr).toDateString()) {
-             showToast("Only today's attendance can be edited", "error");
-             return;
+            showToast("Only today's attendance can be edited", "error");
+            return;
         }
         if (serviceRateType !== 'hourly') return;
 
@@ -556,7 +556,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                         const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
                         const status = getDateStatus(dateStr);
                         const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
-                        
+
                         const cellDate = new Date(year, month, day);
                         const todayDate = new Date();
                         todayDate.setHours(0, 0, 0, 0);
@@ -572,7 +572,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                             cellBg = '#FEE2E2';
                             cellBorder = '#EF4444';
                         }
-                        
+
                         // Highlight today if no EXPLICIT status is set yet (though getDateStatus handles 6am implicit)
                         const hasExplicitStatus = !!serviceLog[dateStr];
                         if (isToday && !hasExplicitStatus && status !== 'present') {
@@ -584,7 +584,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                             <TouchableOpacity
                                 key={dateStr}
                                 style={[
-                                    styles.dayCell, 
+                                    styles.dayCell,
                                     { backgroundColor: cellBg, borderColor: cellBorder },
                                     isFuture && { opacity: 0.5 } // Dim only future dates
                                 ]}
@@ -615,11 +615,17 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                             Total: {totalHoursInMonth} hours × ₹{serviceRate}/hr
                         </Text>
                     )}
-                    
+
                     {calculatedTotal > 0 && (
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={{ marginTop: 15 }}
-                            onPress={() => setShowPaymentRequestModal(true)}
+                            onPress={() => {
+                                if (customer.payment_direction === 'payable') {
+                                    handlePay();
+                                } else {
+                                    setShowPaymentRequestModal(true);
+                                }
+                            }}
                         >
                             <LinearGradient
                                 colors={['#3B82F6', '#2563EB']}
@@ -627,8 +633,14 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }}
                             >
-                                <Ionicons name="paper-plane-outline" size={20} color="#fff" />
-                                <Text style={styles.paymentRequestText}>Send Payment Request</Text>
+                                <Ionicons
+                                    name={customer.payment_direction === 'payable' ? "card-outline" : "paper-plane-outline"}
+                                    size={20}
+                                    color="#fff"
+                                />
+                                <Text style={styles.paymentRequestText}>
+                                    {customer.payment_direction === 'payable' ? 'Pay Now' : 'Send Payment Request'}
+                                </Text>
                             </LinearGradient>
                         </TouchableOpacity>
                     )}
@@ -643,6 +655,31 @@ const ServiceDetailScreen = ({ route, navigation }) => {
         setEditNickname(customer.nickname || '');
         setEditUpiId(customer.upi_id || '');
         setShowEditCustomerModal(true);
+    };
+
+    const handlePay = async () => {
+        const upiId = customer.upi_id;
+        const name = customer.name || 'Member';
+        const amount = calculatedTotal.toFixed(2);
+
+        if (!upiId) {
+            showToast('Please add UPI ID to make payment.', 'error');
+            return;
+        }
+
+        const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=${encodeURIComponent(`Payment to ${name}`)}`;
+
+        try {
+            const supported = await Linking.canOpenURL(upiUrl);
+            if (supported) {
+                await Linking.openURL(upiUrl);
+            } else {
+                showToast('No UPI app found on this device', 'error');
+            }
+        } catch (error) {
+            console.error('UPI payment error:', error);
+            showToast('Failed to open UPI app', 'error');
+        }
     };
 
     const handleUpdateCustomer = async () => {
@@ -670,7 +707,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                 upi_id: editUpiId.trim() || null
             };
             await activeAPI.update(shopId, customer.id, updateData);
-            
+
             showToast('Details updated successfully');
             setShowEditCustomerModal(false);
 
@@ -823,7 +860,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                                 <Ionicons name="warning" size={20} color="#92400E" />
                                 <Text style={styles.bannerTitle}>Verification Pending. You cannot change rate and attendance until this service is verified.</Text>
                             </View>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.bannerAction}
                                 onPress={() => handleSendVerificationWithData(customer.phone, customer.name)}
                             >
@@ -987,8 +1024,8 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                     visible={showPaymentRequestModal}
                     onClose={() => setShowPaymentRequestModal(false)}
                     customer={{
-                        ...customer, 
-                        balance: -calculatedTotal, 
+                        ...customer,
+                        balance: -calculatedTotal,
                         shop_id: shopId,
                         serviceMonth: currentMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' }),
                         serviceRate: serviceRate,
@@ -1048,7 +1085,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                                     </Text>
                                 </View>
                             )}
-                            
+
                             {!hoursInput && <View style={{ height: 16 }} />}
 
                             <TouchableOpacity
@@ -1604,7 +1641,7 @@ const PaymentRequestModal = ({ visible, onClose, customer, transactions, activeA
                                                     </Text>
                                                 </View>
                                             )}
-                                                                                    {/* Advance Payment Form */}
+                                            {/* Advance Payment Form */}
                                             {requestType === 'Advance Payment Request' && (
                                                 <View style={modalStyles.advanceInfoCard}>
                                                     <View style={{ marginBottom: 16 }}>

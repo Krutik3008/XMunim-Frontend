@@ -32,7 +32,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 const StaffDetailScreen = ({ route, navigation }) => {
     const { customer: initialCustomer, shopId, serviceId, type } = route.params;
     const { user } = useAuth();
-    
+
     // Choose which API to use based on type
     const activeAPI = type === 'services' ? serviceAPI : (type === 'staff' ? staffAPI : customerAPI);
     const activeId = serviceId || initialCustomer?.id;
@@ -191,7 +191,7 @@ const StaffDetailScreen = ({ route, navigation }) => {
     const calculateDayTotal = (entry) => {
         if (!entry || typeof entry !== 'object') return 0;
         const entryRateType = entry.rate_type || (entry.hours > 0 ? 'hourly' : 'daily');
-        
+
         if (entryRateType === 'hourly') {
             if (entry.hours_log && Array.isArray(entry.hours_log) && entry.hours_log.length > 0) {
                 return entry.hours_log.reduce((sum, log) => sum + (log.hours * log.rate), 0);
@@ -241,7 +241,7 @@ const StaffDetailScreen = ({ route, navigation }) => {
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateStr = `${year}-${monthStr}-${day.toString().padStart(2, '0')}`;
                 const status = getDateStatus(dateStr);
-                
+
                 if (status === 'present') {
                     const entry = serviceLog[dateStr];
                     if (typeof entry === 'object' && entry !== null) {
@@ -319,7 +319,7 @@ const StaffDetailScreen = ({ route, navigation }) => {
                         delete entry.hours_log;
                     }
                 }
-                
+
                 migratedLog[dateStr] = entry;
             });
 
@@ -399,12 +399,12 @@ const StaffDetailScreen = ({ route, navigation }) => {
 
     const openHoursModal = (dateStr) => {
         if (!customer.is_verified) {
-             showToast('First Verify the customer before changes', 'error');
-             return;
+            showToast('First Verify the customer before changes', 'error');
+            return;
         }
         if (new Date().toDateString() !== new Date(dateStr).toDateString()) {
-             showToast("Only today's attendance can be edited", "error");
-             return;
+            showToast("Only today's attendance can be edited", "error");
+            return;
         }
         if (serviceRateType !== 'hourly') return;
 
@@ -569,7 +569,7 @@ const StaffDetailScreen = ({ route, navigation }) => {
                         const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
                         const status = getDateStatus(dateStr);
                         const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
-                        
+
                         const cellDate = new Date(year, month, day);
                         const todayDate = new Date();
                         todayDate.setHours(0, 0, 0, 0);
@@ -585,7 +585,7 @@ const StaffDetailScreen = ({ route, navigation }) => {
                             cellBg = '#FEE2E2';
                             cellBorder = '#EF4444';
                         }
-                        
+
                         // Highlight today if no EXPLICIT status is set yet (though getDateStatus handles 6am implicit)
                         const hasExplicitStatus = !!serviceLog[dateStr];
                         if (isToday && !hasExplicitStatus && status !== 'present') {
@@ -597,7 +597,7 @@ const StaffDetailScreen = ({ route, navigation }) => {
                             <TouchableOpacity
                                 key={dateStr}
                                 style={[
-                                    styles.dayCell, 
+                                    styles.dayCell,
                                     { backgroundColor: cellBg, borderColor: cellBorder },
                                     isFuture && { opacity: 0.5 } // Dim only future dates
                                 ]}
@@ -628,10 +628,10 @@ const StaffDetailScreen = ({ route, navigation }) => {
                             Total: {totalHoursInMonth} hours × ₹{serviceRate}/hr
                         </Text>
                     )}
-                    
+
                     {calculatedTotal > 0 && (
-                        <TouchableOpacity 
-                            style={{ marginTop: 15 }} 
+                        <TouchableOpacity
+                            style={{ marginTop: 15 }}
                             onPress={handlePay}
                         >
                             <LinearGradient
@@ -641,7 +641,7 @@ const StaffDetailScreen = ({ route, navigation }) => {
                                 end={{ x: 1, y: 0 }}
                             >
                                 <Ionicons name="card-outline" size={20} color="#fff" />
-                                <Text style={styles.paymentRequestText}>Pay</Text>
+                                <Text style={styles.paymentRequestText}>Pay Now</Text>
                             </LinearGradient>
                         </TouchableOpacity>
                     )}
@@ -683,7 +683,7 @@ const StaffDetailScreen = ({ route, navigation }) => {
                 upi_id: editUpiId.trim() || null
             };
             await activeAPI.update(shopId, customer.id, updateData);
-            
+
             showToast('Details updated successfully');
             setShowEditCustomerModal(false);
 
@@ -710,14 +710,14 @@ const StaffDetailScreen = ({ route, navigation }) => {
             setUpdatingCustomer(false);
         }
     };
-    
+
     const handlePay = async () => {
         const upiId = customer.upi_id;
         const name = customer.name || 'Member';
         const amount = calculatedTotal.toFixed(2);
 
         if (!upiId) {
-            showToast('UPI ID not set. Please edit details to add UPI ID.', 'error');
+            showToast('Please add UPI ID to make payment.', 'error');
             return;
         }
 
@@ -861,7 +861,7 @@ const StaffDetailScreen = ({ route, navigation }) => {
                                 <Ionicons name="warning" size={20} color="#92400E" />
                                 <Text style={styles.bannerTitle}>Verification Pending. You cannot  change rate and attendance until this staff is verified.</Text>
                             </View>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.bannerAction}
                                 onPress={() => handleSendVerificationWithData(customer.phone, customer.name)}
                             >
