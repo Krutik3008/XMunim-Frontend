@@ -173,6 +173,7 @@ const ShopOwnerDashboardScreen = () => {
     const [newCustomerPhone, setNewCustomerPhone] = useState('');
     const [newCustomerNickname, setNewCustomerNickname] = useState('');
     const [newCustomerType, setNewCustomerType] = useState('customer');
+    const [newCustomerPaymentDirection, setNewCustomerPaymentDirection] = useState('payable'); // 'payable' (I Pay) or 'receivable' (They Pay)
     const [newCustomerUpiId, setNewCustomerUpiId] = useState('');
     const [addingCustomer, setAddingCustomer] = useState(false);
     const [services, setServices] = useState([]);
@@ -482,7 +483,8 @@ const ShopOwnerDashboardScreen = () => {
                     nickname: savedNickname,
                     upi_id: newCustomerUpiId.trim() || null,
                     service_rate: 0, // Initial rate
-                    service_rate_type: 'daily'
+                    service_rate_type: 'daily',
+                    payment_direction: newCustomerPaymentDirection
                 });
             } else if (savedType === 'staff') {
                 // Use staffAPI for salaried/hourly staff
@@ -516,6 +518,7 @@ const ShopOwnerDashboardScreen = () => {
             setNewCustomerNickname('');
             setNewCustomerUpiId('');
             setNewCustomerType('customer');
+            setNewCustomerPaymentDirection('payable');
 
             loadCustomers(shopId); // Refresh customer list
             loadServices(shopId);  // Refresh services list
@@ -1886,6 +1889,29 @@ const ShopOwnerDashboardScreen = () => {
                     </View>
                 </View>
 
+                {newCustomerType === 'services' && (
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.inputLabel}>Payment Direction <Text style={styles.required}>*</Text></Text>
+                        <View style={styles.typeToggle}>
+                            <TouchableOpacity
+                                style={[styles.typeOption, newCustomerPaymentDirection === 'payable' && styles.typeOptionActive]}
+                                onPress={() => setNewCustomerPaymentDirection('payable')}
+                            >
+                                <Text style={[styles.typeOptionText, newCustomerPaymentDirection === 'payable' && styles.typeOptionTextActive]}>
+                                    Payable
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.typeOption, newCustomerPaymentDirection === 'receivable' && styles.typeOptionActive]}
+                                onPress={() => setNewCustomerPaymentDirection('receivable')}
+                            >
+                                <Text style={[styles.typeOptionText, newCustomerPaymentDirection === 'receivable' && styles.typeOptionTextActive]}>
+                                    Receivable
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
                 <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Nickname (Optional)</Text>
                     <TextInput
@@ -1898,7 +1924,7 @@ const ShopOwnerDashboardScreen = () => {
                     />
                 </View>
 
-                {newCustomerType === 'staff' && (
+                {(newCustomerType === 'staff' || (newCustomerType === 'services' && newCustomerPaymentDirection === 'payable')) && (
                     <View style={styles.inputGroup}>
                         <Text style={styles.inputLabel}>UPI ID (for payments)</Text>
                         <TextInput
@@ -1911,7 +1937,6 @@ const ShopOwnerDashboardScreen = () => {
                         />
                     </View>
                 )}
-
                 <TouchableOpacity
                     style={[styles.submitButton, addingCustomer && styles.submitButtonDisabled]}
                     onPress={handleAddCustomer}
@@ -1923,6 +1948,7 @@ const ShopOwnerDashboardScreen = () => {
                         <Text style={styles.submitButtonText}>Add</Text>
                     )}
                 </TouchableOpacity>
+                <View style={{ height: 30 }} />
             </Modal>
 
             {/* Add Product Modal */}

@@ -67,6 +67,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
     const [editName, setEditName] = useState('');
     const [editPhone, setEditPhone] = useState('');
     const [editNickname, setEditNickname] = useState('');
+    const [editUpiId, setEditUpiId] = useState('');
     const [updatingCustomer, setUpdatingCustomer] = useState(false);
 
     // Payment Request Modal
@@ -640,6 +641,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
         setEditName(customer.name);
         setEditPhone(customer.phone);
         setEditNickname(customer.nickname || '');
+        setEditUpiId(customer.upi_id || '');
         setShowEditCustomerModal(true);
     };
 
@@ -664,7 +666,8 @@ const ServiceDetailScreen = ({ route, navigation }) => {
             const updateData = {
                 name: editName.trim(),
                 phone: editPhone.trim(),
-                nickname: editNickname.trim() || null
+                nickname: editNickname.trim() || null,
+                upi_id: editUpiId.trim() || null
             };
             await activeAPI.update(shopId, customer.id, updateData);
             
@@ -943,12 +946,25 @@ const ServiceDetailScreen = ({ route, navigation }) => {
 
                             <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8 }}>Nickname</Text>
                             <TextInput
-                                style={{ borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 12, marginBottom: 20, fontSize: 16 }}
+                                style={{ borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 16 }}
                                 value={editNickname}
                                 onChangeText={setEditNickname}
                                 placeholder="Optional"
                                 placeholderTextColor="#9CA3AF"
                             />
+
+                            {customer.payment_direction === 'payable' && (
+                                <>
+                                    <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8 }}>UPI ID (for payments)</Text>
+                                    <TextInput
+                                        style={{ borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 12, marginBottom: 20, fontSize: 16 }}
+                                        value={editUpiId}
+                                        onChangeText={setEditUpiId}
+                                        placeholder="e.g. name@upi"
+                                        placeholderTextColor="#9CA3AF"
+                                    />
+                                </>
+                            )}
 
                             <TouchableOpacity
                                 style={{ backgroundColor: '#3B82F6', padding: 14, borderRadius: 8, alignItems: 'center' }}
