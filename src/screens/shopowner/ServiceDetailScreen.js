@@ -1311,7 +1311,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                                 placeholder="Add Hour"
                                 selectTextOnFocus={true}
                             />
-                            <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 8, fontStyle: 'italic' }}>
+                            <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 12, marginBottom: 20, fontStyle: 'italic', lineHeight: 18 }}>
                                 Note: These hours will be ADDED to any hours already logged for this date.
                             </Text>
 
