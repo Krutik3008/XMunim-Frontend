@@ -16,7 +16,8 @@ import {
     Switch,
     RefreshControl,
     TouchableWithoutFeedback,
-    Dimensions
+    Dimensions,
+    Modal as RNModal
 } from 'react-native';
 import Modal from '../../components/ui/Modal';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -71,6 +72,17 @@ const StaffDetailScreen = ({ route, navigation }) => {
     const [editUpiId, setEditUpiId] = useState('');
     const [updatingCustomer, setUpdatingCustomer] = useState(false);
     const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+    // Quick Log States
+    const [showQuickLogModal, setShowQuickLogModal] = useState(false);
+    const [quickLogDate, setQuickLogDate] = useState(new Date());
+    const [quickLogHours, setQuickLogHours] = useState('');
+    const [showDatePicker, setShowDatePicker] = useState(false);
+
+    // Long Press Menu state
+    const [showLongPressMenu, setShowLongPressMenu] = useState(false);
+    const [selectedDateStr, setSelectedDateStr] = useState(null);
+    const [isSavingQuickAction, setIsSavingQuickAction] = useState(false);
 
     useEffect(() => {
         const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
@@ -418,74 +430,127 @@ const StaffDetailScreen = ({ route, navigation }) => {
         setShowHoursModal(true);
     };
 
-    const handleSaveHours = async () => {
-        const hours = parseFloat(hoursInput);
-        if (!hoursInput || isNaN(hours) || hours <= 0) {
-            showToast('Please enter valid hours (must be > 0)', 'error');
-            return;
-        }
-
-        const dateStr = editingDateStr;
+    const updateHoursForDate = async (dateStr, hoursToAdd, isAdditive = true) => {
+        if (!dateStr) return;
         const currentRate = parseFloat(serviceRate);
         const updatedLog = { ...serviceLog };
         const existingEntry = updatedLog[dateStr];
+        
+        let newTotalHours = 0;
+        let newHoursLog = [];
 
-        if (typeof existingEntry === 'object' && existingEntry !== null && existingEntry.status === 'present' && existingEntry.hours_log) {
-            // Updating existing entry — check if rate changed since last log
-            const lastLog = existingEntry.hours_log[existingEntry.hours_log.length - 1];
+        if (typeof existingEntry === 'object' && existingEntry !== null && existingEntry.status === 'present') {
             const oldTotalHours = existingEntry.hours || 0;
-            const additionalHours = hours - oldTotalHours;
-
-            if (additionalHours > 0 && lastLog && lastLog.rate !== currentRate) {
-                // Rate changed — add new segment with remaining hours at new rate
-                updatedLog[dateStr] = {
-                    ...existingEntry,
-                    hours: hours,
-                    rate: currentRate,
-                    hours_log: [...existingEntry.hours_log, { hours: additionalHours, rate: currentRate }]
-                };
-            } else if (additionalHours !== 0) {
-                // Same rate — update the last log entry
-                const newLog = [...existingEntry.hours_log];
-                if (newLog.length > 0) {
-                    newLog[newLog.length - 1] = { ...newLog[newLog.length - 1], hours: newLog[newLog.length - 1].hours + additionalHours };
-                    // If last log became 0 or negative, remove it
-                    if (newLog[newLog.length - 1].hours <= 0) newLog.pop();
+            newTotalHours = isAdditive ? oldTotalHours + hoursToAdd : hoursToAdd;
+            
+            if (existingEntry.hours_log && Array.isArray(existingEntry.hours_log)) {
+                newHoursLog = [...existingEntry.hours_log];
+                const lastLog = newHoursLog[newHoursLog.length - 1];
+                
+                if (isAdditive) {
+                    if (lastLog && lastLog.rate === currentRate) {
+                        newHoursLog[newHoursLog.length - 1] = { ...lastLog, hours: lastLog.hours + hoursToAdd };
+                    } else {
+                        newHoursLog.push({ hours: hoursToAdd, rate: currentRate });
+                    }
+                } else {
+                    newHoursLog = [{ hours: hoursToAdd, rate: currentRate }];
                 }
-                updatedLog[dateStr] = {
-                    ...existingEntry,
-                    hours: hours,
-                    rate: currentRate,
-                    hours_log: newLog.length > 0 ? newLog : [{ hours: hours, rate: currentRate }]
-                };
             } else {
-                // No change in hours, just update rate reference
-                updatedLog[dateStr] = { ...existingEntry, rate: currentRate };
+                newHoursLog = [{ hours: newTotalHours, rate: currentRate }];
             }
         } else {
-            // New entry or replacing absent
-            updatedLog[dateStr] = {
-                status: 'present',
-                rate: currentRate,
-                rate_type: 'hourly',
-                hours: hours,
-                hours_log: [{ hours: hours, rate: currentRate }]
-            };
+            newTotalHours = hoursToAdd;
+            newHoursLog = [{ hours: hoursToAdd, rate: currentRate }];
         }
 
+        updatedLog[dateStr] = {
+            status: 'present',
+            rate: currentRate,
+            rate_type: 'hourly',
+            hours: newTotalHours,
+            hours_log: newHoursLog
+        };
+
         setServiceLog(updatedLog);
-        setShowHoursModal(false);
 
         try {
             await activeAPI.updateServiceData(shopId, customer.id, {
                 service_log: updatedLog
             });
+            showToast(`Hours logged successfully`);
         } catch (error) {
-            showToast('Failed to sync hours update', 'error');
+            showToast('Failed to sync hours', 'error');
             setServiceLog(serviceLog);
         }
     };
 
+    const handleSaveHours = async () => {
+        const hours = parseFloat(hoursInput);
+        if (!hoursInput || isNaN(hours) || hours <= 0) {
+            showToast('Please enter valid hours', 'error');
+            return;
+        }
+
+        await updateHoursForDate(editingDateStr, hours, false);
+        setShowHoursModal(false);
+    };
+
+    const handleQuickAction = async (action) => {
+        if (!selectedDateStr) return;
+        setIsSavingQuickAction(true);
+        
+        try {
+            if (action === 'add8') {
+                await updateHoursForDate(selectedDateStr, 8, true);
+            } else if (action === 'absent') {
+                const updatedLog = { ...serviceLog };
+                updatedLog[selectedDateStr] = {
+                    status: 'absent',
+                    rate: parseFloat(serviceRate),
+                    rate_type: serviceRateType
+                };
+                setServiceLog(updatedLog);
+                await activeAPI.updateServiceData(shopId, customer.id, { service_log: updatedLog });
+                showToast('Marked as absent');
+            } else if (action === 'clear') {
+                const updatedLog = { ...serviceLog };
+                delete updatedLog[selectedDateStr];
+                setServiceLog(updatedLog);
+                await activeAPI.updateServiceData(shopId, customer.id, { service_log: updatedLog });
+                showToast('Cleared date');
+            }
+        } catch (e) {
+            showToast('Action failed', 'error');
+        } finally {
+            setIsSavingQuickAction(false);
+            setShowLongPressMenu(false);
+            setSelectedDateStr(null);
+        }
+    };
+
+    const handleLongPressDate = (dateStr) => {
+        if (!customer.is_verified) {
+            showToast('Verification required', 'error');
+            return;
+        }
+        if (new Date(dateStr) > new Date()) return;
+        
+        setSelectedDateStr(dateStr);
+        setShowLongPressMenu(true);
+    };
+
+    const handleQuickLogSave = async () => {
+        const hours = parseFloat(quickLogHours);
+        if (isNaN(hours) || hours <= 0) {
+            showToast('Enter valid hours', 'error');
+            return;
+        }
+
+        const dateStr = quickLogDate.toISOString().split('T')[0];
+        await updateHoursForDate(dateStr, hours, true);
+        setShowQuickLogModal(false);
+    };
     const handleMarkAbsent = async () => {
         const dateStr = editingDateStr;
         const updatedLog = { ...serviceLog };
@@ -602,8 +667,8 @@ const StaffDetailScreen = ({ route, navigation }) => {
                                     isFuture && { opacity: 0.5 } // Dim only future dates
                                 ]}
                                 onPress={() => toggleDateStatus(dateStr)}
-                                onLongPress={() => openHoursModal(dateStr)}
-                                disabled={!isToday} // Disable interaction for all dates except today
+                                onLongPress={() => handleLongPressDate(dateStr)}
+                                disabled={isFuture} 
                             >
                                 <Text style={[styles.dayText, isFuture && { color: '#9CA3AF' }]}>{day}</Text>
                                 <View style={styles.statusIndicator}>
@@ -873,7 +938,28 @@ const StaffDetailScreen = ({ route, navigation }) => {
 
                     {/* Rate Settings Card */}
                     <View style={styles.sectionCard}>
-                        <Text style={styles.sectionTitle}>Rate Settings</Text>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1A1A1A' }}>Rate Settings</Text>
+                            {serviceRateType === 'hourly' && (
+                                <TouchableOpacity 
+                                    onPress={() => {
+                                        setQuickLogDate(new Date());
+                                        setQuickLogHours('');
+                                        setShowQuickLogModal(true);
+                                    }}
+                                >
+                                    <LinearGradient
+                                        colors={['#3B82F6', '#2563EB']}
+                                        style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                    >
+                                        <Ionicons name="add" size={18} color="#fff" />
+                                        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Add Hour</Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            )}
+                        </View>
                         <View style={styles.inputGroup}>
                             <Text style={styles.inputLabel}>Current Rate (₹)</Text>
                             <View style={styles.rateInputRow}>
@@ -1065,6 +1151,129 @@ const StaffDetailScreen = ({ route, navigation }) => {
                         </TouchableOpacity>
                     </View>
                 </Modal>
+
+                {/* Long Press Quick Menu */}
+                <RNModal
+                    visible={showLongPressMenu}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => setShowLongPressMenu(false)}
+                >
+                    <TouchableWithoutFeedback onPress={() => setShowLongPressMenu(false)}>
+                        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }}>
+                            <View style={{ backgroundColor: '#fff', borderRadius: 16, width: '80%', padding: 20, elevation: 5 }}>
+                                <Text style={{ fontSize: 16, fontWeight: '700', marginBottom: 15, color: '#111827' }}>
+                                    Quick Action: {selectedDateStr && new Date(selectedDateStr).toLocaleDateString()}
+                                </Text>
+                                
+                                <TouchableOpacity 
+                                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}
+                                    onPress={() => handleQuickAction('add8')}
+                                >
+                                    <Ionicons name="time" size={20} color="#3B82F6" style={{ marginRight: 12 }} />
+                                    <Text style={{ fontSize: 15, fontWeight: '500' }}>Add 8 Hours</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity 
+                                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}
+                                    onPress={() => { setShowLongPressMenu(false); openHoursModal(selectedDateStr); }}
+                                >
+                                    <Ionicons name="create-outline" size={20} color="#10B981" style={{ marginRight: 12 }} />
+                                    <Text style={{ fontSize: 15, fontWeight: '500' }}>Custom Hours</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity 
+                                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}
+                                    onPress={() => handleQuickAction('absent')}
+                                >
+                                    <Ionicons name="close-circle" size={20} color="#EF4444" style={{ marginRight: 12 }} />
+                                    <Text style={{ fontSize: 15, fontWeight: '500' }}>Mark Absent</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity 
+                                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }}
+                                    onPress={() => handleQuickAction('clear')}
+                                >
+                                    <Ionicons name="trash-outline" size={20} color="#6B7280" style={{ marginRight: 12 }} />
+                                    <Text style={{ fontSize: 15, fontWeight: '500' }}>Clear Data</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity 
+                                    style={{ marginTop: 15, paddingVertical: 10, alignItems: 'center' }}
+                                    onPress={() => setShowLongPressMenu(false)}
+                                >
+                                    <Text style={{ color: '#6B7280', fontWeight: '600' }}>Cancel</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </TouchableWithoutFeedback>
+                </RNModal>
+
+                {/* Quick Log Modal with Cumulative Logic */}
+                <RNModal
+                    visible={showQuickLogModal}
+                    transparent={true}
+                    animationType="slide"
+                    onRequestClose={() => setShowQuickLogModal(false)}
+                >
+                    <KeyboardAvoidingView 
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+                    >
+                        <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                                <Text style={{ fontSize: 20, fontWeight: '700' }}>Log Extra Hours</Text>
+                                <TouchableOpacity onPress={() => setShowQuickLogModal(false)}>
+                                    <Ionicons name="close-circle" size={28} color="#9CA3AF" />
+                                </TouchableOpacity>
+                            </View>
+
+                            <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Choose Date</Text>
+                            <TouchableOpacity 
+                                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, padding: 14, marginBottom: 20 }}
+                                onPress={() => setShowDatePicker(true)}
+                            >
+                                <Text style={{ fontSize: 15, color: '#111827', fontWeight: '500' }}>
+                                    {quickLogDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                </Text>
+                                <Ionicons name="calendar-outline" size={20} color="#3B82F6" />
+                            </TouchableOpacity>
+
+                            {showDatePicker && (
+                                <DateTimePicker
+                                    value={quickLogDate}
+                                    mode="date"
+                                    display="default"
+                                    maximumDate={new Date()}
+                                    onChange={(event, date) => {
+                                        setShowDatePicker(false);
+                                        if (date) setQuickLogDate(date);
+                                    }}
+                                />
+                            )}
+
+                            <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Hours to Add</Text>
+                            <TextInput
+                                style={{ backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, padding: 14, fontSize: 18, fontWeight: '700', marginBottom: 10, color: '#111827' }}
+                                value={quickLogHours}
+                                onChangeText={setQuickLogHours}
+                                keyboardType="numeric"
+                                placeholder="Add Hour"
+                                selectTextOnFocus={true}
+                            />
+                            <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 20, fontStyle: 'italic' }}>
+                                Note: These hours will be ADDED to any hours already logged for this date.
+                            </Text>
+
+                            <TouchableOpacity 
+                                style={{ backgroundColor: '#3B82F6', borderRadius: 12, paddingVertical: 16, alignItems: 'center', elevation: 2 }}
+                                onPress={handleQuickLogSave}
+                            >
+                                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Save & Update Total</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </KeyboardAvoidingView>
+                </RNModal>
 
 
                 {/* Bottom Navigation */}
