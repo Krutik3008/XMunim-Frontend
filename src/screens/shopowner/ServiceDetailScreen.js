@@ -421,18 +421,18 @@ const ServiceDetailScreen = ({ route, navigation }) => {
         const currentRate = parseFloat(serviceRate);
         const updatedLog = { ...serviceLog };
         const existingEntry = updatedLog[dateStr];
-        
+
         let newTotalHours = 0;
         let newHoursLog = [];
 
         if (typeof existingEntry === 'object' && existingEntry !== null && existingEntry.status === 'present') {
             const oldTotalHours = existingEntry.hours || 0;
             newTotalHours = isAdditive ? oldTotalHours + hoursToAdd : hoursToAdd;
-            
+
             if (existingEntry.hours_log && Array.isArray(existingEntry.hours_log)) {
                 newHoursLog = [...existingEntry.hours_log];
                 const lastLog = newHoursLog[newHoursLog.length - 1];
-                
+
                 if (isAdditive) {
                     if (lastLog && lastLog.rate === currentRate) {
                         newHoursLog[newHoursLog.length - 1] = { ...lastLog, hours: lastLog.hours + hoursToAdd };
@@ -487,7 +487,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
     const handleQuickAction = async (action) => {
         if (!selectedDateStr) return;
         setIsSavingQuickAction(true);
-        
+
         try {
             if (action === 'add8') {
                 await updateHoursForDate(selectedDateStr, 8, true);
@@ -523,7 +523,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
             return;
         }
         if (new Date(dateStr) > new Date()) return; // Future dates
-        
+
         setSelectedDateStr(dateStr);
         setShowLongPressMenu(true);
     };
@@ -535,7 +535,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
             return;
         }
 
-        const dateStr = quickLogDate.toISOString().split('T')[0];
+        const dateStr = `${quickLogDate.getFullYear()}-${String(quickLogDate.getMonth() + 1).padStart(2, '0')}-${String(quickLogDate.getDate()).padStart(2, '0')}`;
         await updateHoursForDate(dateStr, hours, true); // Quick Log uses Additive mode
         setShowQuickLogModal(false);
     };
@@ -657,7 +657,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                                 ]}
                                 onPress={() => toggleDateStatus(dateStr)}
                                 onLongPress={() => handleLongPressDate(dateStr)}
-                                disabled={isFuture} 
+                                disabled={isFuture}
                             >
                                 <Text style={[styles.dayText, isFuture && { color: '#9CA3AF' }]}>{day}</Text>
                                 <View style={styles.statusIndicator}>
@@ -942,7 +942,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                             <Text style={{ fontSize: 16, fontWeight: '700', color: '#1A1A1A' }}>Rate Settings</Text>
                             {serviceRateType === 'hourly' && (
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     onPress={() => {
                                         setQuickLogDate(new Date());
                                         setQuickLogHours('');
@@ -1215,8 +1215,8 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                                 <Text style={{ fontSize: 16, fontWeight: '700', marginBottom: 15, color: '#111827' }}>
                                     Quick Action: {selectedDateStr && new Date(selectedDateStr).toLocaleDateString()}
                                 </Text>
-                                
-                                <TouchableOpacity 
+
+                                <TouchableOpacity
                                     style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}
                                     onPress={() => handleQuickAction('add8')}
                                 >
@@ -1224,7 +1224,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                                     <Text style={{ fontSize: 15, fontWeight: '500' }}>Add 8 Hours</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}
                                     onPress={() => { setShowLongPressMenu(false); openHoursModal(selectedDateStr); }}
                                 >
@@ -1232,7 +1232,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                                     <Text style={{ fontSize: 15, fontWeight: '500' }}>Custom Hours</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}
                                     onPress={() => handleQuickAction('absent')}
                                 >
@@ -1240,7 +1240,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                                     <Text style={{ fontSize: 15, fontWeight: '500' }}>Mark Absent</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }}
                                     onPress={() => handleQuickAction('clear')}
                                 >
@@ -1248,7 +1248,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                                     <Text style={{ fontSize: 15, fontWeight: '500' }}>Clear Data</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     style={{ marginTop: 15, paddingVertical: 10, alignItems: 'center' }}
                                     onPress={() => setShowLongPressMenu(false)}
                                 >
@@ -1266,7 +1266,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                     animationType="slide"
                     onRequestClose={() => setShowQuickLogModal(false)}
                 >
-                    <KeyboardAvoidingView 
+                    <KeyboardAvoidingView
                         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                         style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
                     >
@@ -1279,7 +1279,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                             </View>
 
                             <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Choose Date</Text>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, padding: 14, marginBottom: 20 }}
                                 onPress={() => setShowDatePicker(true)}
                             >
@@ -1311,11 +1311,11 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                                 placeholder="Add Hour"
                                 selectTextOnFocus={true}
                             />
-                            <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 20, fontStyle: 'italic' }}>
+                            <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 8, fontStyle: 'italic' }}>
                                 Note: These hours will be ADDED to any hours already logged for this date.
                             </Text>
 
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={{ backgroundColor: '#3B82F6', borderRadius: 12, paddingVertical: 16, alignItems: 'center', elevation: 2 }}
                                 onPress={handleQuickLogSave}
                             >
