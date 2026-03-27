@@ -292,7 +292,7 @@ const AdminRoleManagement = ({ showToast }) => {
                     <View style={styles.guidelineItem}>
                         <View style={[styles.guidelineDot, { backgroundColor: '#111827' }]} />
                         <Text style={styles.guidelineText}>
-                            Only Admins can promote other users to Admin
+                            Only Super Admins can promote other users to Admin
                         </Text>
                     </View>
                     <View style={styles.guidelineItem}>
